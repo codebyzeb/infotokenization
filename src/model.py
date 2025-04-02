@@ -1,3 +1,5 @@
+from importlib.util import find_spec
+
 from lightning import seed_everything
 from transformers import PreTrainedTokenizerFast
 from transformers.configuration_utils import PretrainedConfig
@@ -5,19 +7,16 @@ from transformers.models.llama.configuration_llama import LlamaConfig
 from transformers.models.llama.modeling_llama import LlamaForCausalLM
 
 
-
 def get_model(name: str, tok: PreTrainedTokenizerFast) -> tuple[LlamaForCausalLM, PretrainedConfig]:
     # Check if flash attention is available, otherwise use sdpa
-    try:
-        import flash_attn
-        attn_implementation = "flash_attention_2"
-    except ImportError:
-        attn_implementation = "sdpa"
+
+    attn_implementation = "flash_attention_2" if find_spec("flash_attn") is not None else "sdpa"
 
     kwargs = {
         "vocab_size": tok.vocab_size,
         "bos_token_id": tok.eos_token_id,  # type: ignore
         "eos_token_id": tok.eos_token_id,  # type: ignore
+        "pad_token_id": tok.pad_token_id,  # type: ignore
         "torch_dtype": "bfloat16",
         "use_cache": True,
         "max_position_embeddings": 2048,
