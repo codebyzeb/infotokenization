@@ -1,0 +1,37 @@
+# @package _global_
+defaults:
+  - override /hydra/launcher: submitit_slurm
+
+hydra:
+  launcher:
+    # gpus_per_node: 1
+    # tasks_per_node: 1
+    # cpus_per_task: 12
+    # mem_gb: 64
+    partition: ampere
+    account: VLACHOS-SL2-GPU
+    timeout_min: 360  # 12 hours
+    nodes: 1
+    gres: gpu:${trainer.devices}  # need to match
+    tasks_per_node: ${trainer.devices}  # need to match
+    name: ${model}_${tok_name}
+    additional_parameters:
+      mail_type: ALL # test whether we receive email notifications
+    # max_num_timeout: 10   # Maximum number of resubmission
+    comment: Ciao!
+    # constraint: null
+    # exclude: null
+    # signal_delay_s: 120
+    # max_num_timeout: 0
+    # additional_parameters: {}
+    # array_parallelism: 256
+    setup:
+      - ". /etc/profile.d/modules.sh"
+      - "module list"
+      - "echo -e 'loading other modules'"
+      - "module load rhel8/default-amp"
+      - "module load cuda/12.1"
+      - "module load cudnn/8.9_cuda-12.1"
+      - "module list"
+      - export NCCL_DEBUG=INFO  # debugging flags (optional)
+      - export PYTHONFAULTHANDLER=1

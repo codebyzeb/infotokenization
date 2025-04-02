@@ -1,0 +1,5 @@
+tensorboard:
+  _target_: src.trainer.TensorBoardLogger
+  save_dir: ./
+  name: ''
+  version: null  # ./

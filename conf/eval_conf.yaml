@@ -1,0 +1,63 @@
+# =========================
+# Experiment configurations
+# =========================
+defaults:
+  - override hydra/job_logging: colorlog
+  - override hydra/hydra_logging: colorlog
+  - _self_
+
+
+hydra:
+
+  # adds colorlog to logging
+  job_logging:
+    formatters:
+      colorlog:
+        format: '[%(cyan)s%(asctime)s%(reset)s][%(blue)s%(name)s%(reset)s][%(log_color)s%(levelname)s%(reset)s] - %(message)s'
+        log_colors:
+          DEBUG: purple
+          INFO: green
+          WARNING: yellow
+          ERROR: red
+          CRITICAL: bold_red
+
+  # tells hydra to make the run/dir the current working director
+  job:
+    chdir: true
+
+  # folder structure
+  run:
+    dir: ./outputs/model_eval/${out_path}
+  sweep:
+    dir: ./outputs/multirun/model_eval
+    subdir: ${out_path}_${hydra.job.id}
+
+
+run_path: null
+out_path: ${dataset}/${get_folder_name:${run_path},${repo_id}}/${checkpoint}_${now:%Y-%m-%d}T${now:%H-%M-%S}
+seed: 42
+write_interval: 10
+
+tok_path: null
+repo_id: null
+
+# Data
+data_path: /home/pl487/merge-effect/data/${dataset}
+dataset: minipile
+data_split: test
+
+
+# Model (without ".ckpt")
+checkpoint: last
+
+
+# Model config
+accelerator: gpu
+precision: bf16-true
+torch_compile: false
+
+
+# Dataloading
+max_tokens_per_batch: 40_000
+window_size: 20_000
+step_size: 5000

@@ -1,0 +1,93 @@
+# =========================
+# Experiment configurations
+# =========================
+defaults:
+  - loggers:
+    - tensorboard
+  - /callbacks:
+    - lr_monitor
+    - grad_norm
+    - speed_monitor
+    - grad_accum
+    - model_checkpoint
+  - override hydra/job_logging: colorlog
+  - override hydra/hydra_logging: colorlog
+  - _self_
+
+
+hydra:
+  job_logging:
+    formatters:
+      colorlog:
+        format: '[%(cyan)s%(asctime)s%(reset)s][%(blue)s%(name)s%(reset)s][%(log_color)s%(levelname)s%(reset)s] - %(message)s'
+        log_colors:
+          DEBUG: purple
+          INFO: green
+          WARNING: yellow
+          ERROR: red
+          CRITICAL: bold_red
+  job:
+    chdir: true
+  run:
+    dir: ./outputs/${out_parent_folder}/${run_folder}
+  sweep:
+    dir: ./outputs/multirun/${out_parent_folder}
+    subdir: ${run_folder}_${hydra.job.id}
+
+# convenience
+out_parent_folder: model_train
+tok_name: '???'
+run_folder: ${model}_${dataset}_${tok_name}
+
+dataset: minipile
+pwd: /home/pl487/merge-effect/
+train_data_path: ${pwd}/data/${dataset}/${tok_name}/train
+val_data_path: ${pwd}/data/${dataset}/${tok_name}/validation
+
+model: me100M
+resume_from_checkpoint: null
+save_initial_checkpoint: true
+
+seed: 42
+torch_compile: true
+
+data:
+  batch_size: 32
+  eval_batch_size: 64
+  shuffle: true
+  drop_last: false
+  num_workers: 8
+  pin_memory: true
+  persistent_workers: false
+  prefetch_factor: 2
+  multiprocessing_context: null
+
+optim:
+  optim_name: adamw
+  lr: 6e-4
+  weight_decay: 0.01
+  optim_kwargs:
+    fused: true
+    eps: 1e-8
+    betas: [0.9, 0.95]
+  scheduler_name: warmup_stable_decay  # cosine_with_min_lr
+  num_warmup_steps: 2000
+  scheduler_kwargs:
+    num_stable_steps: 44000
+    num_decay_steps: 4000
+    min_lr_ratio: 0.01
+
+trainer:
+  accelerator: gpu
+  devices: 1
+  precision: bf16-true
+  deterministic: false
+  log_every_n_steps: 1
+  enable_progress_bar: true
+  fast_dev_run: false
+  gradient_clip_val: 1.0
+  gradient_clip_algorithm: norm
+  val_check_interval: 2000
+  max_steps: 50_000
+  limit_val_batches: 500
+  # limit_train_batches: 10

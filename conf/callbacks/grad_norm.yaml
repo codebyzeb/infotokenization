@@ -1,0 +1,8 @@
+grad_norm:
+  _target_: src.callbacks.grad_norm.GradNorm
+  norm_type: 2
+  group_separator: '/'
+  histogram_freq: null
+  check_clipping: false
+  log_weight_distribution: false
+  only_total: true

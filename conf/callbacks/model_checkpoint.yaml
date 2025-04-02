@@ -1,0 +1,14 @@
+model_checkpoint:
+  _target_: src.callbacks.model_checkpoint.ModelCheckpoint
+  dirpath: .checkpoints
+  filename: '{step}'
+  enable_version_counter: false
+  every_n_train_steps: ${trainer.val_check_interval}
+  save_top_k: -1
+  save_last: link
+  verbose: true
+  save_initial_checkpoint: true
+  
+
+
+

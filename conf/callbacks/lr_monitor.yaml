@@ -1,0 +1,2 @@
+lr_monitor:
+  _target_: src.callbacks.lr_monitor.SimpleLearningRateMonitor 
