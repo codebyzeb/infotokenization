@@ -1,2 +1,4 @@
 HF_USERNAME = "InfoTokenizers"
-BYTE_LEVEL_TOKENIZER_REPO_ID = "Byte-Level-Tokenizer"
+TOK_REPO_ID = "tokenizers"
+BYTELEVEL_TOK_FOLDER = "bytelevel"
+FINEWEBEDU_REPO_ID = "finewebedu-20B"

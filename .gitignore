@@ -132,3 +132,4 @@ dmypy.json
 .ruff_cache
 outputs
 .uv_cache
+.datatrove
