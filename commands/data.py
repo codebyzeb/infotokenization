@@ -7,7 +7,7 @@ from datatrove.data import DocumentsPipeline
 from datatrove.executor.local import LocalPipelineExecutor
 from datatrove.pipeline.base import PipelineStep
 from datatrove.pipeline.readers import ParquetReader
-from datatrove.pipeline.writers.huggingface import HuggingFaceDatasetWriter
+from datatrove.pipeline.writers.huggingface import ParquetWriter
 from datatrove.utils.batching import batched
 from huggingface_hub import HfApi
 from rich import print
@@ -28,7 +28,7 @@ def finewebedu_tokenize(
 
     print(
         f"⚙️ Starting FineWebEdu tokenization pipeline\n\t{SOURCE_REPO_ID=}\n\t{TARGET_REPO_ID=}\n"
-        f"Tokenizing with {tok_path=}{'/' + subfolder if subfolder else ''} and {batch_size=}"
+        f"Tokenizing with {tok_path}{'/' + subfolder if subfolder else ''} and {batch_size=}"
     )
 
     class DocumentTokenizer(PipelineStep):
@@ -47,33 +47,59 @@ def finewebedu_tokenize(
                         doc.metadata["num_tokens"] = len(encoded)  # for the future: this would have been convenient
                         yield doc
 
-    api = HfApi()
-    api.create_repo(TARGET_REPO_ID, exist_ok=True, repo_type="dataset")
+    out_path = Path("data") / f".tokenized_upload_{tok_name}"
+    out_path.mkdir(parents=True, exist_ok=True)
+    print(f"Tokenizing into {out_path=}")
 
     pipe_tokenize = LocalPipelineExecutor(
         pipeline=[
             ParquetReader(
-                SOURCE_REPO_ID, file_progress=True, doc_progress=True, shuffle_files=False, text_key="text", id_key="id"
+                SOURCE_REPO_ID,
+                file_progress=True,
+                doc_progress=True,
+                shuffle_files=False,
+                text_key="text",
+                id_key="id",
+                # limit=100,
             ),
             DocumentTokenizer(pretrained_model_name_or_path=tok_path, subfolder=subfolder, batch_size=batch_size),
-            HuggingFaceDatasetWriter(
-                TARGET_REPO_ID,
-                output_filename=f"{tok_name}/${{rank}}.parquet",
-                local_working_dir=".datatrove/loader_tok",
+            # HuggingFaceDatasetWriter(
+            #     TARGET_REPO_ID,
+            #     output_filename=f"{tok_name}/${{rank}}.parquet",
+            #     local_working_dir=".datatrove/loader_tok",
+            #     adapter=lambda _, doc: {
+            #         "id": doc.id,
+            #         "input_ids": doc.metadata["input_ids"],
+            #         "num_tokens": doc.metadata["num_tokens"],
+            #     },
+            #     private=True,
+            # ),
+            ParquetWriter(
+                str(out_path),
+                output_filename="${rank}.parquet",
+                compression="zstd",
                 adapter=lambda _, doc: {
                     "id": doc.id,
                     "input_ids": doc.metadata["input_ids"],
                     "num_tokens": doc.metadata["num_tokens"],
                 },
-                private=False,
+                max_file_size=2 * (2**30),
             ),
         ],
         logging_dir=".datatrove/logs/finewebedu_tok",
-        tasks=os.cpu_count() - 2,  # type: ignore
+        tasks=min(20, os.cpu_count() - 2),  # type: ignore
     )
     pipe_tokenize.run()
-
     print("✅ Successfully tokenized FineWebEdu dataset")
+
+
+    print(f"🆙 Uploading to {TARGET_REPO_ID}")
+    api = HfApi()
+    api.create_repo(TARGET_REPO_ID, exist_ok=True, repo_type="dataset")
+    print(f"🗂️ Repo created at {TARGET_REPO_ID}")
+
+    api.upload_folder(repo_id=TARGET_REPO_ID, folder_path=str(out_path), path_in_repo=tok_name, repo_type="dataset")
+    print(f"✅ Successfully uploaded to {TARGET_REPO_ID}")
 
     print("Cleaning up ./.datatrove cache")
     shutil.rmtree(".datatrove", ignore_errors=True)

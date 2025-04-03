@@ -133,3 +133,4 @@ dmypy.json
 outputs
 .uv_cache
 .datatrove
+data/
