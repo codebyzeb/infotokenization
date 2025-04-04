@@ -1,4 +1,4 @@
-sources = src/ commands/
+sources = src/ commands/ scripts/
 
 format:
 	ruff format $(sources)

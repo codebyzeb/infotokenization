@@ -6,13 +6,13 @@ import hydra
 import torch
 from lightning import Trainer, seed_everything
 from omegaconf import DictConfig, OmegaConf
-from transformers import AutoTokenizer, PreTrainedTokenizerFast
+from transformers import AutoTokenizer
 
+from commands.configs import HF_USERNAME, TOK_REPO_ID
 from src.data import DataloaderConfig, DataModule
 from src.model import get_model
 from src.trainer import LanguageModel, OptimCofig, TensorBoardLogger
 from src.utilities import conf_to_dict, instantiate_from_conf
-from commands.configs import HF_USERNAME, TOK_REPO_ID
 
 SEP_LINE = f"{'=' * 80}"
 
@@ -30,7 +30,7 @@ def main(cfg: DictConfig) -> None:
     # Load tokenizer
     tok_repo_id = f"{HF_USERNAME}/{TOK_REPO_ID}"
     logger.info(f"Loading tokenizer from {tok_repo_id}/{cfg.tok_name}")
-    tok = AutoTokenizer.from_pretrained(tok_repo_id, subfolder=cfg.tok_name)  
+    tok = AutoTokenizer.from_pretrained(tok_repo_id, subfolder=cfg.tok_name)
 
     # Load model
     model, config = get_model(cfg.model, tok)  # type: ignore
@@ -41,7 +41,7 @@ def main(cfg: DictConfig) -> None:
 
     # Load datamodule
     dataloader_config = DataloaderConfig(**conf_to_dict(cfg.data))
-    
+
     # FIXME: the datapath logic needs to be updated
     datamodule = DataModule(
         train_data_path=cfg.train_data_path,
