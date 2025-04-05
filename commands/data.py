@@ -12,15 +12,16 @@ from datatrove.utils.batching import batched
 from huggingface_hub import HfApi
 from rich import print
 from transformers import AutoTokenizer
+from datasets import load_dataset, Dataset
 
-from commands.configs import BYTELEVEL_TOK_FOLDER, FINEWEBEDU_REPO_ID, HF_USERNAME, TOK_REPO_ID
+from commands.configs import BYTELEVEL_TOK_FOLDER, FINEWEBEDU_REPO_ID, HF_USERNAME, NUM_TRAIN_ROWS, TOK_REPO_ID, BYTE_DATA_FOLDER, BYTE_DATA_SUBSET_FOLDER
 
 app = typer.Typer()
 
 
 @app.command()
 def finewebedu_tokenize(
-    tok_path: str = f"{HF_USERNAME}/{TOK_REPO_ID}", subfolder: str | None = BYTELEVEL_TOK_FOLDER, batch_size: int = 1000
+    tok_path: str = f"{HF_USERNAME}/{TOK_REPO_ID}", subfolder: str | None = BYTE_DATA_FOLDER, batch_size: int = 1000
 ) -> None:
     SOURCE_REPO_ID = "hf://datasets/pietrolesci/finewebedu-20B/data"
     TARGET_REPO_ID = f"{HF_USERNAME}/{FINEWEBEDU_REPO_ID}"
@@ -99,6 +100,37 @@ def finewebedu_tokenize(
 
     api.upload_folder(repo_id=TARGET_REPO_ID, folder_path=str(out_path), path_in_repo=tok_name, repo_type="dataset")
     print(f"✅ Successfully uploaded to {TARGET_REPO_ID}")
+
+    print("Cleaning up ./.datatrove cache")
+    shutil.rmtree(".datatrove", ignore_errors=True)
+
+@app.command()
+def finewebedu_subset(
+    subset_size: int = NUM_TRAIN_ROWS,
+    subfolder: str = BYTE_DATA_SUBSET_FOLDER
+) -> None:
+    DATA_REPO_ID = f"{HF_USERNAME}/{FINEWEBEDU_REPO_ID}"
+
+    print(
+        f"⚙️ Creating a {subset_size}-row subset of FineWebEdu located at \n\t{DATA_REPO_ID=}"
+    )
+
+    # Load the dataset
+    dataset = load_dataset(DATA_REPO_ID, name=BYTE_DATA_FOLDER, split='train', streaming=True)
+    dataset = list(dataset.take(subset_size))
+    dataset = Dataset.from_list(dataset)
+    
+    print(f"✅ Successfully created a {subset_size}-row subset of FineWebEdu dataset")
+    print(f"🆙 Uploading the subset to {DATA_REPO_ID} on the HF Hub")
+
+    dataset.push_to_hub(
+        repo_id=DATA_REPO_ID,
+        set_default=False,
+        config_name=subfolder,
+        max_shard_size="2GB",
+    )
+
+    print("✅ Successfully created subset of FineWebEdu dataset")
 
     print("Cleaning up ./.datatrove cache")
     shutil.rmtree(".datatrove", ignore_errors=True)
