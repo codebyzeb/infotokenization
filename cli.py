@@ -2,7 +2,7 @@ import os
 
 import typer
 
-from commands import tokenizers, data
+from commands import tokenizers, data, ngram
 
 # Set this here in order to have effect
 # See: https://github.com/huggingface/transformers/issues/25305#issuecomment-1852931139
@@ -17,6 +17,7 @@ os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
 app = typer.Typer()
 app.add_typer(tokenizers.app, name="tokenizers")
 app.add_typer(data.app, name="data")
+app.add_typer(ngram.app, name="ngram")
 
 
 if __name__ == "__main__":
