@@ -39,8 +39,8 @@ out_parent_folder: model_train
 tok_name: '???'
 run_folder: ${model}_${dataset}_${tok_name}
 
-dataset: minipile
-pwd: /home/pl487/merge-effect/
+dataset: finewebedu
+pwd: ./
 train_data_path: ${pwd}/data/${dataset}/${tok_name}/train
 val_data_path: ${pwd}/data/${dataset}/${tok_name}/validation
 

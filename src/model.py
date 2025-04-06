@@ -24,7 +24,7 @@ def get_model(name: str, tok: PreTrainedTokenizerFast) -> tuple[LlamaForCausalLM
     }
     seed_everything(42)
 
-    if name == "me57M-tied":
+    if name.startswith("fw57M"):
         config = LlamaConfig(
             model_type="llama",
             hidden_act="silu",
@@ -33,7 +33,7 @@ def get_model(name: str, tok: PreTrainedTokenizerFast) -> tuple[LlamaForCausalLM
             num_attention_heads=24,
             num_key_value_heads=24,
             num_hidden_layers=6,
-            tie_word_embeddings=True,
+            tie_word_embeddings="tied" in name,
             initializer_range=0.02,
             attention_bias=False,
             attention_dropout=0.0,
@@ -45,48 +45,48 @@ def get_model(name: str, tok: PreTrainedTokenizerFast) -> tuple[LlamaForCausalLM
             **kwargs,
         )
 
-    elif name == "me340M-tied":
-        # https://huggingface.co/HuggingFaceTB/SmolLM-360M/blob/main/config.json
-        config = LlamaConfig(
-            model_type="llama",
-            hidden_act="silu",
-            hidden_size=1024,
-            intermediate_size=2560,
-            num_attention_heads=15,
-            num_key_value_heads=5,
-            num_hidden_layers=32,
-            tie_word_embeddings=True,
-            initializer_range=0.02,
-            attention_bias=False,
-            attention_dropout=0.0,
-            mlp_bias=False,
-            pretraining_tp=1,
-            rms_norm_eps=1e-05,
-            rope_scaling=None,
-            rope_theta=10000.0,
-            **kwargs,
-        )
+    # elif name == "fw57M-tied":
+    #     # https://huggingface.co/HuggingFaceTB/SmolLM-360M/blob/main/config.json
+    #     config = LlamaConfig(
+    #         model_type="llama",
+    #         hidden_act="silu",
+    #         hidden_size=1024,
+    #         intermediate_size=2560,
+    #         num_attention_heads=15,
+    #         num_key_value_heads=5,
+    #         num_hidden_layers=32,
+    #         tie_word_embeddings=True,
+    #         initializer_range=0.02,
+    #         attention_bias=False,
+    #         attention_dropout=0.0,
+    #         mlp_bias=False,
+    #         pretraining_tp=1,
+    #         rms_norm_eps=1e-05,
+    #         rope_scaling=None,
+    #         rope_theta=10000.0,
+    #         **kwargs,
+    #     )
 
-    elif name == "me850M":
-        config = LlamaConfig(
-            model_type="llama",
-            hidden_act="silu",
-            hidden_size=1536,
-            intermediate_size=6144,
-            num_attention_heads=32,
-            num_key_value_heads=4,
-            num_hidden_layers=24,
-            tie_word_embeddings=False,
-            initializer_range=0.02,
-            attention_bias=False,
-            attention_dropout=0.0,
-            mlp_bias=False,
-            pretraining_tp=1,
-            rms_norm_eps=1e-05,
-            rope_scaling=None,
-            rope_theta=10000.0,
-            **kwargs,
-        )
+    # elif name == "fw850M":
+    #     config = LlamaConfig(
+    #         model_type="llama",
+    #         hidden_act="silu",
+    #         hidden_size=1536,
+    #         intermediate_size=6144,
+    #         num_attention_heads=32,
+    #         num_key_value_heads=4,
+    #         num_hidden_layers=24,
+    #         tie_word_embeddings=False,
+    #         initializer_range=0.02,
+    #         attention_bias=False,
+    #         attention_dropout=0.0,
+    #         mlp_bias=False,
+    #         pretraining_tp=1,
+    #         rms_norm_eps=1e-05,
+    #         rope_scaling=None,
+    #         rope_theta=10000.0,
+    #         **kwargs,
+    #     )
 
     else:
         raise ValueError

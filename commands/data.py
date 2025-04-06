@@ -12,8 +12,10 @@ from datatrove.utils.batching import batched
 from huggingface_hub import HfApi
 from rich import print
 from transformers import AutoTokenizer
+from datasets import DatasetDict, load_dataset
 
 from commands.configs import BYTELEVEL_TOK_FOLDER, FINEWEBEDU_REPO_ID, HF_USERNAME, TOK_REPO_ID
+from src import data
 
 app = typer.Typer()
 
@@ -63,17 +65,6 @@ def finewebedu_tokenize(
                 # limit=100,
             ),
             DocumentTokenizer(pretrained_model_name_or_path=tok_path, subfolder=subfolder, batch_size=batch_size),
-            # HuggingFaceDatasetWriter(
-            #     TARGET_REPO_ID,
-            #     output_filename=f"{tok_name}/${{rank}}.parquet",
-            #     local_working_dir=".datatrove/loader_tok",
-            #     adapter=lambda _, doc: {
-            #         "id": doc.id,
-            #         "input_ids": doc.metadata["input_ids"],
-            #         "num_tokens": doc.metadata["num_tokens"],
-            #     },
-            #     private=True,
-            # ),
             ParquetWriter(
                 str(out_path),
                 output_filename="${rank}.parquet",
@@ -104,24 +95,25 @@ def finewebedu_tokenize(
     shutil.rmtree(".datatrove", ignore_errors=True)
 
 
-# @app.command()
-# def download_processed(
-#     tok: str = "bpe32000minipile", local_dir: str = "./data", cache_dir: str = ".data_cache"
-# ) -> None:
-#     print(f"Downloading {REPO_ID}/{tok} and saving to {local_dir} (cache in {cache_dir})")
-#     ds: DatasetDict = load_dataset(REPO_ID, tok, cache_dir=cache_dir, num_proc=os.cpu_count())  # type: ignore
+@app.command()
+def finewebedu_download(tok: str = "bytelevel", local_dir: str = "./data", cache_dir: str = ".cache") -> None:
+    TARGET_REPO_ID = f"{HF_USERNAME}/{FINEWEBEDU_REPO_ID}"
+    NUM_TRAIN = 20_000_000
+    
+    print(f"Downloading {TARGET_REPO_ID}/{tok} and saving to {local_dir} (cache in {cache_dir})")
+    ds: DatasetDict = load_dataset(TARGET_REPO_ID, data_dir=tok, cache_dir=cache_dir, num_proc=min(12, os.cpu_count()))  # type: ignore
 
-#     print(f"Splitting {num_train_docs} docs for training and {num_val_docs} for validation")
-#     total_size = len(ds["train"])
-#     ds["validation"] = ds["train"].select(range(num_train_docs, total_size))
-#     ds["train"] = ds["train"].select(range(num_train_docs))
+    total_size = len(ds["train"])
+    print(f"Splitting {NUM_TRAIN} docs for training and {total_size - NUM_TRAIN} for validation")
+    ds["validation"] = ds["train"].select(range(NUM_TRAIN, total_size))
+    ds["train"] = ds["train"].select(range(NUM_TRAIN))
 
-#     out_path = f"{local_dir}/{REPO_ID.split('/')[1]}/{tok}"
-#     print(f"Saving to {out_path}")
-#     ds.save_to_disk(out_path, max_shard_size="2GB", num_proc=os.cpu_count())  # type: ignore
+    out_path = f"{local_dir}/{TARGET_REPO_ID.split('/')[1]}/{tok}"
+    print(f"Saving to {out_path}")
+    ds.save_to_disk(out_path, max_shard_size="2GB", num_proc=min(12, os.cpu_count()))  # type: ignore
 
-#     print(f"Cleaning up {cache_dir} cache")
-#     shutil.rmtree(cache_dir, ignore_errors=True)
+    print(f"Cleaning up {cache_dir} cache")
+    shutil.rmtree(cache_dir, ignore_errors=True)
 
 
 if __name__ == "__main__":

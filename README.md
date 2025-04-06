@@ -1,4 +1,9 @@
-## Setup
+## General Intro and Setup
+
+Here we explain how to use the repo.
+
+
+### Setup
 
 Clone the repo
 
@@ -25,7 +30,7 @@ uv sync --extra flash  # if you also want flash-attention
 ```
 
 
-## Run commands via the CLI
+### Run commands via the CLI
 
 We define commands in the `/commands` folder. You can run any available command as follows
 
@@ -39,4 +44,31 @@ For example, to create a simple byte-level tokenizer
 ```bash
 # Note: no args or options needed here
 uv run cli.py tokenizers create-bytelevel
+```
+
+
+
+
+## Reproducing Experiments
+
+Here we describe how to run the experiments.
+
+
+### Train the ByteLevel model
+
+Download the preprocessed data from the Hugging Face Hub
+
+```bash
+uv run cli.py data finewebedu-download --tok bytelevel
+```
+
+This saves the data to `./data/finewebedu/bytelevel`.
+
+Once you have the data, you can train the bytelevel model as follows
+
+```bash
+uv run scripts/train.py \
+    dataset=finewebedu \
+    tok_name=bytelevel \
+    model=fw57M-tied
 ```
