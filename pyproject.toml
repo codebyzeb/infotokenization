@@ -33,6 +33,7 @@ dependencies = [
     "typer>=0.15.2",
     "datatrove>=0.4.0",
     "torchdata>=0.11.0",
+    "nltk>=3.9.1",
 ]
 
 [build-system]

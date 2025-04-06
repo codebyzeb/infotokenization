@@ -3,6 +3,7 @@ import shutil
 from pathlib import Path
 
 import typer
+from datasets import DatasetDict, load_dataset
 from datatrove.data import DocumentsPipeline
 from datatrove.executor.local import LocalPipelineExecutor
 from datatrove.pipeline.base import PipelineStep
@@ -22,7 +23,7 @@ app = typer.Typer()
 
 @app.command()
 def finewebedu_tokenize(
-    tok_path: str = f"{HF_USERNAME}/{TOK_REPO_ID}", subfolder: str | None = BYTELEVEL_TOK_FOLDER, batch_size: int = 1000
+    tok_path: str = f"{HF_USERNAME}/{TOK_REPO_ID}", subfolder: str | None = BYTE_DATA_FOLDER, batch_size: int = 1000
 ) -> None:
     SOURCE_REPO_ID = "hf://datasets/pietrolesci/finewebedu-20B/data"
     TARGET_REPO_ID = f"{HF_USERNAME}/{FINEWEBEDU_REPO_ID}"
