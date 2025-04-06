@@ -13,10 +13,8 @@ from datatrove.utils.batching import batched
 from huggingface_hub import HfApi
 from rich import print
 from transformers import AutoTokenizer
-from datasets import DatasetDict, load_dataset
 
-from commands.configs import BYTELEVEL_TOK_FOLDER, FINEWEBEDU_REPO_ID, HF_USERNAME, TOK_REPO_ID
-from src import data
+from commands.configs import BYTE_DATA_FOLDER, FINEWEBEDU_REPO_ID, HF_USERNAME, TOK_REPO_ID
 
 app = typer.Typer()
 
@@ -100,7 +98,7 @@ def finewebedu_tokenize(
 def finewebedu_download(tok: str = "bytelevel", local_dir: str = "./data", cache_dir: str = ".cache") -> None:
     TARGET_REPO_ID = f"{HF_USERNAME}/{FINEWEBEDU_REPO_ID}"
     NUM_TRAIN = 20_000_000
-    
+
     print(f"Downloading {TARGET_REPO_ID}/{tok} and saving to {local_dir} (cache in {cache_dir})")
     ds: DatasetDict = load_dataset(TARGET_REPO_ID, data_dir=tok, cache_dir=cache_dir, num_proc=min(12, os.cpu_count()))  # type: ignore
 

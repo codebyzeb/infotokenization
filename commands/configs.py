@@ -6,7 +6,7 @@ BYTELEVEL_TOK_FOLDER = "bytelevel"
 BYTE_MODELS_REPO_ID = "byte-level-models"
 NGRAM_MODEL_FOLDER = "ngram"
 
-# data repository
+# data repository
 FINEWEBEDU_REPO_ID = "finewebedu-20B"
 BYTE_DATA_FOLDER = "bytelevel"
 BYTE_DATA_SUBSET_FOLDER = "bytelevel-subset"

@@ -1,25 +1,34 @@
-import os
-import shutil
 import copy
-import typer
 import multiprocessing
+import shutil
 from pathlib import Path
-import dill as pickle 
 
+import dill as pickle
+import typer
+from datasets import load_dataset
 from huggingface_hub import HfApi
+from nltk.lm import AbsoluteDiscountingInterpolated as NGRAM_MODEL
+from nltk.lm.counter import NgramCounter
+from nltk.lm.preprocessing import padded_everygram_pipeline
 from rich import print
 from transformers import AutoTokenizer
-from datasets import load_dataset
 
-from nltk.lm import AbsoluteDiscountingInterpolated as NGRAM_MODEL
-from nltk.lm.preprocessing import padded_everygram_pipeline
-from nltk.lm.counter import NgramCounter
-
-from commands.configs import BYTE_DATA_SUBSET_FOLDER, BYTELEVEL_TOK_FOLDER, FINEWEBEDU_REPO_ID, HF_USERNAME, TOK_REPO_ID, MAX_NGRAM_LENGTH, NUM_TRAIN_ROWS, NGRAM_MODEL_FOLDER, BYTE_MODELS_REPO_ID
+from commands.configs import (
+    BYTE_DATA_SUBSET_FOLDER,
+    BYTE_MODELS_REPO_ID,
+    BYTELEVEL_TOK_FOLDER,
+    FINEWEBEDU_REPO_ID,
+    HF_USERNAME,
+    MAX_NGRAM_LENGTH,
+    NGRAM_MODEL_FOLDER,
+    NUM_TRAIN_ROWS,
+    TOK_REPO_ID,
+)
 
 app = typer.Typer()
 
-def _update_counter_with_counter(counter1 : NgramCounter, counter2 : NgramCounter):
+
+def _update_counter_with_counter(counter1: NgramCounter, counter2: NgramCounter):
     """
     Add two Counter objects together, merging their counts.
     """
@@ -42,6 +51,7 @@ def _update_counter_with_counter(counter1 : NgramCounter, counter2 : NgramCounte
                     else:
                         counter1[order][context][word] += freq
 
+
 def _combine_ngram_models(models):
     """
     Combine multiple Kneser-Ney models into a single model.
@@ -60,19 +70,21 @@ def _combine_ngram_models(models):
                 combined_model.vocab.counts[word] = model.vocab[word]
             else:
                 combined_model.vocab.counts[word] += model.vocab[word]
-    
+
     # Update the counts
     for model in models[1:]:
         _update_counter_with_counter(combined_model.counts, model.counts)
 
     return combined_model
 
+
 def _train(data_chunk):
     train_data, padded_sents = padded_everygram_pipeline(order=MAX_NGRAM_LENGTH, text=data_chunk)
     model = NGRAM_MODEL(order=MAX_NGRAM_LENGTH)
     model.fit(train_data, padded_sents)
-    
+
     return model
+
 
 class TokenIterable:
     def __init__(self, dataset, tokenizer):
@@ -81,7 +93,8 @@ class TokenIterable:
 
     def __iter__(self):
         for sample in self.dataset:
-            yield self.tokenizer.convert_ids_to_tokens(sample['input_ids'])
+            yield self.tokenizer.convert_ids_to_tokens(sample["input_ids"])
+
 
 @app.command()
 def train_ngram_model() -> None:
@@ -92,7 +105,9 @@ def train_ngram_model() -> None:
     print(f"💡 Will save the ngram model locally to to: {folder_path}")
 
     # Load tokenizer data
-    tokenizer = AutoTokenizer.from_pretrained(pretrained_model_name_or_path=tokenizer_path, subfolder=BYTELEVEL_TOK_FOLDER)
+    tokenizer = AutoTokenizer.from_pretrained(
+        pretrained_model_name_or_path=tokenizer_path, subfolder=BYTELEVEL_TOK_FOLDER
+    )
     dataset = load_dataset(data_path, name=BYTE_DATA_SUBSET_FOLDER, split="train", streaming=True)
     dataset = dataset.select_columns("input_ids")
 
@@ -101,7 +116,9 @@ def train_ngram_model() -> None:
     print(f"💡 Splitting data into {num_chunks} shards for training ngram LMs")
     iterables = []
     for i in range(num_chunks):
-        iterables.append(TokenIterable(dataset.shard(num_chunks, index=i).take(NUM_TRAIN_ROWS // num_chunks), tokenizer))
+        iterables.append(
+            TokenIterable(dataset.shard(num_chunks, index=i).take(NUM_TRAIN_ROWS // num_chunks), tokenizer)
+        )
 
     print("⚙️ Training the KneserNeyInterpolated ngram models (this may take a while)...")
     with multiprocessing.Pool(num_chunks) as pool:
@@ -109,7 +126,7 @@ def train_ngram_model() -> None:
     model = _combine_ngram_models(models)
     print("✅ Successfully trained ngram models")
 
-    with open(folder_path / f"{MAX_NGRAM_LENGTH}-gram-model.pkl", 'wb') as fout:
+    with open(folder_path / f"{MAX_NGRAM_LENGTH}-gram-model.pkl", "wb") as fout:
         pickle.dump(model, fout)
 
     repo_id = f"{HF_USERNAME}/{folder_path.parent}"
