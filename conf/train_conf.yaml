@@ -39,10 +39,10 @@ out_parent_folder: model_train
 tok_name: '???'
 run_folder: ${model}_${dataset}_${tok_name}
 
-dataset: finewebedu
-pwd: ./
-train_data_path: ${pwd}/data/${dataset}/${tok_name}/train
-val_data_path: ${pwd}/data/${dataset}/${tok_name}/validation
+dataset: finewebedu-20B
+pwd: /home/zg258/rds/hpc-work/infotokenization
+train_data_path: ${pwd}/data/${dataset}/${tok_name}-subset/train
+val_data_path: ${pwd}/data/${dataset}/${tok_name}-subset/validation
 
 model: me100M
 resume_from_checkpoint: null

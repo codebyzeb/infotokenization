@@ -175,3 +175,8 @@ cython_debug/
 
 # VSCODE
 .DS_Store
+
+# Local data
+data/
+lib/
+outputs/

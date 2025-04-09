@@ -130,6 +130,9 @@ def finewebedu_download(tok: str = "bytelevel", local_dir: str = "./data", cache
     TARGET_REPO_ID = f"{HF_USERNAME}/{FINEWEBEDU_REPO_ID}"
     NUM_TRAIN = 20_000_000
 
+    # Make cache dir absolute path
+    cache_dir = os.path.abspath(cache_dir)
+    local_dir = os.path.abspath(local_dir)
     print(f"Downloading {TARGET_REPO_ID}/{tok} and saving to {local_dir} (cache in {cache_dir})")
     ds: DatasetDict = load_dataset(TARGET_REPO_ID, data_dir=tok, cache_dir=cache_dir, num_proc=min(12, os.cpu_count()))  # type: ignore
 
