@@ -2,7 +2,7 @@ import os
 
 import typer
 
-from commands import tokenizers, data, ngram
+from commands import extract, tokenizers, data, ngram
 
 # Set this here in order to have effect
 # See: https://github.com/huggingface/transformers/issues/25305#issuecomment-1852931139
@@ -18,6 +18,7 @@ app = typer.Typer()
 app.add_typer(tokenizers.app, name="tokenizers")
 app.add_typer(data.app, name="data")
 app.add_typer(ngram.app, name="ngram")
+app.add_typer(extract.app, name="extract")
 
 
 if __name__ == "__main__":
