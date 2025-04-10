@@ -1,17 +1,19 @@
 import copy
 import multiprocessing
 import shutil
+from collections.abc import Generator
 from pathlib import Path
+from typing import Any
 
 import dill as pickle
 import typer
-from datasets import load_dataset
+from datasets import Dataset, load_dataset
 from huggingface_hub import HfApi
 from nltk.lm import AbsoluteDiscountingInterpolated as NGRAM_MODEL
 from nltk.lm.counter import NgramCounter
 from nltk.lm.preprocessing import padded_everygram_pipeline
 from rich import print
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, PreTrainedTokenizerFast
 
 from commands.configs import (
     BYTE_DATA_SUBSET_FOLDER,
@@ -28,7 +30,7 @@ from commands.configs import (
 app = typer.Typer()
 
 
-def _update_counter_with_counter(counter1: NgramCounter, counter2: NgramCounter):
+def _update_counter_with_counter(counter1: NgramCounter, counter2: NgramCounter) -> None:
     """
     Add two Counter objects together, merging their counts.
     """
@@ -52,7 +54,7 @@ def _update_counter_with_counter(counter1: NgramCounter, counter2: NgramCounter)
                         counter1[order][context][word] += freq
 
 
-def _combine_ngram_models(models):
+def _combine_ngram_models(models) -> Any:
     """
     Combine multiple Kneser-Ney models into a single model.
 
@@ -87,13 +89,13 @@ def _train(data_chunk):
 
 
 class TokenIterable:
-    def __init__(self, dataset, tokenizer):
+    def __init__(self, dataset: Dataset, tokenizer: PreTrainedTokenizerFast) -> None:
         self.dataset = dataset
         self.tokenizer = tokenizer
 
-    def __iter__(self):
+    def __iter__(self) -> Generator[str | list[str], Any, None]:
         for sample in self.dataset:
-            yield self.tokenizer.convert_ids_to_tokens(sample["input_ids"])
+            yield self.tokenizer.convert_ids_to_tokens(sample["input_ids"])  # type: ignore
 
 
 @app.command()
@@ -117,7 +119,7 @@ def train_ngram_model() -> None:
     iterables = []
     for i in range(num_chunks):
         iterables.append(
-            TokenIterable(dataset.shard(num_chunks, index=i).take(NUM_TRAIN_ROWS // num_chunks), tokenizer)
+            TokenIterable(dataset.shard(num_chunks, index=i).take(NUM_TRAIN_ROWS // num_chunks), tokenizer)  # type: ignore
         )
 
     print("⚙️ Training the KneserNeyInterpolated ngram models (this may take a while)...")

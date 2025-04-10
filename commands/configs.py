@@ -15,8 +15,8 @@ BYTE_LLM_PREDICTION_DATA = "bytelevel-llm-data"
 BYTE_MODELS_REPO_ID = "byte-level-models"
 NGRAM_MODEL_FOLDER = "ngram"
 
-# ngram training
+# ngram training
 MAX_NGRAM_LENGTH = 5
 
-# subset size for training byte-level models
+# subset size for training byte-level models
 NUM_TRAIN_ROWS = 100000

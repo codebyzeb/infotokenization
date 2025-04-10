@@ -66,7 +66,9 @@ def main(cfg: DictConfig) -> None:
     # Train
     seed_everything(cfg.seed)
     torch.set_float32_matmul_precision("high")
-    ckpt_path = cfg.resume_from_checkpoint if cfg.resume_from_checkpoint and Path(cfg.resume_from_checkpoint).exists() else None
+    ckpt_path = (
+        cfg.resume_from_checkpoint if cfg.resume_from_checkpoint and Path(cfg.resume_from_checkpoint).exists() else None
+    )
     trainer.fit(model=module, datamodule=datamodule, ckpt_path=ckpt_path)
     logger.info(f"Training total time: {(time.perf_counter() - start_time) / 60:.1f} minutes")
 
