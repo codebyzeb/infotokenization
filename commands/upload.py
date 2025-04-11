@@ -13,6 +13,8 @@ from src.utilities import get_logger
 logger = get_logger("uploader")
 logging.set_verbosity_info()  # or _debug for more info
 
+from .configs import HF_USERNAME, TOK_REPO_ID
+
 app = typer.Typer()
 
 
@@ -29,7 +31,7 @@ def model(run_dir: Annotated[str, typer.Argument(help="Path to the directory of 
         fl.writelines(lines)
 
     logger.info("create repo and upload common files")
-    repo_id = f"pietrolesci/{hparams['model']}_{hparams['dataset']}_{hparams['tok_name']}"
+    repo_id = f"{HF_USERNAME}/{hparams['model']}_{hparams['dataset']}_{hparams['tok_name']}"
 
     api = HfApi()
     api.create_repo(repo_id, exist_ok=True)
