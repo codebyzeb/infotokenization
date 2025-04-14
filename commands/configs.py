@@ -14,6 +14,7 @@ BYTE_LLM_PREDICTION_DATA = "bytelevel-llm-data"
 # ngram model repository
 BYTE_MODELS_REPO_ID = "byte-level-models"
 NGRAM_MODEL_FOLDER = "ngram"
+BYTE_LLM_MODEL_FOLDER = "llm"
 
 # ngram training
 MAX_NGRAM_LENGTH = 5

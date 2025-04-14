@@ -13,7 +13,7 @@ from src.utilities import get_logger
 logger = get_logger("uploader")
 logging.set_verbosity_info()  # or _debug for more info
 
-from .configs import HF_USERNAME, TOK_REPO_ID
+from .configs import HF_USERNAME
 
 app = typer.Typer()
 
