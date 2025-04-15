@@ -91,3 +91,6 @@ trainer:
   max_steps: 50_000
   limit_val_batches: 500
   # limit_train_batches: 10
+
+evaluation:
+  blimp: true

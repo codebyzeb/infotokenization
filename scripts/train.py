@@ -1,4 +1,8 @@
+import json
 import logging
+import os
+import shutil
+import subprocess
 import time
 from pathlib import Path
 
@@ -13,6 +17,9 @@ from src.data import DataloaderConfig, DataModule
 from src.model import get_model
 from src.trainer import LanguageModel, OptimCofig, TensorBoardLogger
 from src.utilities import conf_to_dict, instantiate_from_conf
+
+import lm_eval
+from lm_eval.utils import make_table, handle_non_serializable
 
 SEP_LINE = f"{'=' * 80}"
 
@@ -76,6 +83,32 @@ def main(cfg: DictConfig) -> None:
         if isinstance(log, TensorBoardLogger):
             log.save_to_parquet("tb_logs.parquet")
 
+    if cfg.evaluation.blimp:
+        start_time = time.perf_counter()
+        logger.info("Evaluating BLiMP dataset...")
+        # Temporarily save the model and tokenizer to a local directory
+        logger.info(f"Temporarily saving model to .cache/eval_model")
+        model.save_pretrained(f".cache/eval_model")
+        tok.save_pretrained(f".cache/eval_model")
+        task_manager = lm_eval.tasks.TaskManager()
+        out_path = "blimp_results.json"
+        results = lm_eval.simple_evaluate(
+            model = 'hf',
+            model_args = 'pretrained=.cache/eval_model',
+            tasks = ["blimp"],
+            device = "cuda:0",
+            batch_size = 'auto',
+            task_manager = task_manager,
+            num_fewshot=0,
+        )
+        shutil.rmtree(f".cache/eval_model")
+        del results['samples']
+        logger.info(f"BLiMP results:\n{make_table(results)}")
+        logger.info(f"Saving BLiMP results to {out_path}")
+        with open(out_path, "w") as f:
+            json.dump(results, indent=2, default=handle_non_serializable, ensure_ascii=False, fp=f)
+        logger.info(f"BLiMP results saved to {out_path}")
+        logger.info(f"Evaluation total time: {(time.perf_counter() - start_time) / 60:.1f} minutes")
 
 if __name__ == "__main__":
     main()
