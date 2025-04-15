@@ -1,6 +1,6 @@
 # Script to launch training on personal VM
 
-uv run cli.py data downloda
+uv run cli.py data download
 
 model=fw57M-tied
 
@@ -8,7 +8,7 @@ uv run scripts/train.py \
     +callbacks.grad_accum.scheduling="{0: 4}" \
     data.eval_batch_size=128 \
     model=$model \
-    pwd=/home/zg258/rds/hpc-work/infotokenization \
+    pwd=/home/zg258/projects/infotokenization \
     torch_compile=true \
     trainer.devices=1 \
     data.num_workers=12 \
