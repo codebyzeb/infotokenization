@@ -120,20 +120,22 @@ def finewebedu_subset(subset_size: int = NUM_TRAIN_ROWS, subfolder: str = BYTE_D
 
 
 @app.command()
-def finewebedu_download(tok: str = "bytelevel", local_dir: str = "./data", cache_dir: str = ".cache") -> None:
+def finewebedu_download(tok : str,
+                        local_dir: str = "./data",
+                        cache_dir: str = ".cache",
+                        num_train_rows : int = 20_000_000) -> None:
     TARGET_REPO_ID = f"{HF_USERNAME}/{FINEWEBEDU_REPO_ID}"
-    NUM_TRAIN = 20_000_000
 
     # Make cache dir absolute path
     cache_dir = os.path.abspath(cache_dir)
     local_dir = os.path.abspath(local_dir)
     print(f"Downloading {TARGET_REPO_ID}/{tok} and saving to {local_dir} (cache in {cache_dir})")
-    ds: DatasetDict = load_dataset(TARGET_REPO_ID, data_dir=tok, cache_dir=cache_dir, num_proc=min(12, os.cpu_count()))  # type: ignore
+    ds: DatasetDict = load_dataset(TARGET_REPO_ID, name=tok, cache_dir=cache_dir, num_proc=min(12, os.cpu_count()))  # type: ignore
 
     total_size = len(ds["train"])
-    print(f"Splitting {NUM_TRAIN} docs for training and {total_size - NUM_TRAIN} for validation")
-    ds["validation"] = ds["train"].select(range(NUM_TRAIN, total_size))
-    ds["train"] = ds["train"].select(range(NUM_TRAIN))
+    print(f"Splitting {num_train_rows} docs for training and {total_size - num_train_rows} for validation")
+    ds["validation"] = ds["train"].select(range(num_train_rows, total_size))
+    ds["train"] = ds["train"].select(range(num_train_rows))
 
     out_path = f"{local_dir}/{TARGET_REPO_ID.split('/')[1]}/{tok}"
     print(f"Saving to {out_path}")
