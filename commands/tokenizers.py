@@ -22,14 +22,16 @@ app = typer.Typer()
 ADD_PREFIX_SPACE = True # Note that we will add a prefix_space to the pre_tokenizer
 PAD_TOKEN = "<|padding|>"
 EOS_TOKEN = "<|endoftext|>"
+DEFAULT_TOKENIZER_SIZES = [8_064, 16_000, 32_000, 64_000, 128_000, 256_000]
 
 # Create logger
 logger = get_logger("tokenizer")
 hf_logging.set_verbosity_info()  # or _debug for more info
 
+
 class InfoTokenizerTrainer:
 
-    VALID_MERGE_TYPES = ['min-mean-pre-merge', 'min-mean-post-merge', 'frequency', 'minimise-deviation']
+    VALID_MERGE_TYPES = ['min-mean-pre-merge', 'min-mean-post-merge', 'frequency', 'minimise-deviation', 'frequency-mean-post-merge']
 
     def __init__(self,
                  dataset : Dataset,
@@ -290,15 +292,20 @@ def create_subwordlevel(
         merge_type: Annotated[str, typer.Argument(help=f"Type of merge to perform. Supported options: {InfoTokenizerTrainer.VALID_MERGE_TYPES}")],
         merge_spaces : Annotated[bool, typer.Option(help="If True, allow multi-word merges.")] = False,
         frequency_threshold: Annotated[int, typer.Option(help="Frequency threshold for merging tokens.")] = 20,
-        vocab_size: Annotated[int, typer.Option(help="Vocabulary size for the tokenizer.")] = 16000,
         num_training_rows: Annotated[int, typer.Option(help="Number of training rows to use.")] = 100000,
+        vocab_sizes: Annotated[list[int], typer.Option(help="Vocabulary sizes for the tokenizer.")] = DEFAULT_TOKENIZER_SIZES,
     ) -> None:
 
-    tokenizer_name = f"{model_type}_{measure}_{merge_type}_{vocab_size}"
+    tokenizer_name = f"{model_type}_{measure}_{merge_type}"
     folder_path = Path(TOK_REPO_ID) / tokenizer_name
+    api = HfApi()
 
-    logger.info(f"💡 Will save the tokenizer locally to to: {folder_path}")
+    logger.info(f"💡 Will save the tokenizers locally to to: {folder_path}")
     folder_path.mkdir(parents=True, exist_ok=True)
+
+    # Sort vocab_sizes if not already sorted
+    vocab_sizes.sort()
+    logger.info(f"Using vocab sizes: {vocab_sizes}")
 
     logger.info(f"⚙️ Loading bytelevel tokenizer and byte LLM data")
     byte_tokenizer = AutoTokenizer.from_pretrained(f"{HF_USERNAME}/{TOK_REPO_ID}", subfolder=BYTELEVEL_TOK_FOLDER)
@@ -322,22 +329,23 @@ def create_subwordlevel(
     )
 
     logger.info("⚙️ Training the InfoTokenizer")
-    trainer.train(vocab_size=vocab_size)
-    tokenizer = trainer.create_tokenizer()
-    tokenizer.save_pretrained(str(folder_path))
-    trainer.save_vocab_and_merges_data(folder_path)
-    logger.info(f"✅ Successfully trained a tokenizer with a vocabulary size of {vocab_size}")
+    for vocab_size in vocab_sizes:
+        folder_path_specific = folder_path / str(vocab_size)
+        folder_path_specific.mkdir(parents=True, exist_ok=True)
+        trainer.train(vocab_size=vocab_size)
+        tokenizer = trainer.create_tokenizer()
+        tokenizer.save_pretrained(str(folder_path_specific))
+        trainer.save_vocab_and_merges_data(folder_path_specific)
+        logger.info(f"✅ Successfully trained a tokenizer with a vocabulary size of {vocab_size}")
 
-    repo_id = f"{HF_USERNAME}/{folder_path.parent}"
-    logger.info(f"🆙 Uploading the tokenizer to {repo_id} on the HF Hub")
+        repo_id = f"{HF_USERNAME}/{folder_path.parent}"
+        logger.info(f"🆙 Uploading the tokenizer to {repo_id} on the HF Hub")
 
-    api = HfApi()
-    api.create_repo(repo_id, exist_ok=True)
-    api.upload_folder(
-        folder_path=folder_path, repo_id=repo_id, path_in_repo=folder_path.name, repo_type="model", revision="main"
-    )
-
-    logger.info(f"✅ Successfully created and uploaded the tokenizer to {repo_id}")
+        api.create_repo(repo_id, exist_ok=True)
+        api.upload_folder(
+            folder_path=folder_path_specific, repo_id=repo_id, path_in_repo=folder_path.name+f"_{vocab_size}", repo_type="model", revision="main"
+        )
+        logger.info(f"✅ Successfully uploaded the tokenizer to {repo_id}")
 
     shutil.rmtree(folder_path, ignore_errors=True)
 
