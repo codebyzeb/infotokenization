@@ -29,6 +29,12 @@ uv sync
 uv sync --extra flash  # if you also want flash-attention
 ```
 
+To lint and format your code you can use 
+
+```bash
+make lint
+make format
+```
 
 ### Run commands via the CLI
 

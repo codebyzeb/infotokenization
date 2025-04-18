@@ -120,10 +120,9 @@ def finewebedu_subset(subset_size: int = NUM_TRAIN_ROWS, subfolder: str = BYTE_D
 
 
 @app.command()
-def finewebedu_download(tok : str,
-                        local_dir: str = "./data",
-                        cache_dir: str = ".cache",
-                        num_train_rows : int = 20_000_000) -> None:
+def finewebedu_download(
+    tok: str, local_dir: str = "./data", cache_dir: str = ".cache", num_train_rows: int = 20_000_000
+) -> None:
     TARGET_REPO_ID = f"{HF_USERNAME}/{FINEWEBEDU_REPO_ID}"
 
     # Make cache dir absolute path

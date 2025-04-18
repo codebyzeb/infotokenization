@@ -11,7 +11,7 @@ from datasets import Dataset, load_dataset
 from huggingface_hub import hf_hub_download
 from nltk.lm.api import LanguageModel
 from rich import print
-from transformers import AutoTokenizer, PreTrainedTokenizerFast, AutoModelForCausalLM
+from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedTokenizerFast
 
 from commands.configs import (
     BYTE_DATA_SUBSET_FOLDER,
@@ -34,7 +34,7 @@ app = typer.Typer()
 class Predictor:
     """
     Base class for predictors.
-    
+
     The __call__ method should add four fields to the examples and return them:
     - Entropy
     - Surprisal
@@ -125,10 +125,13 @@ class NGramPredictor(Predictor):
 
         return examples
 
+
 class LLMPredictor(Predictor):
     """Class for collecting information-theoretic measures from a byte-level LLM."""
 
-    def __init__(self, model: AutoModelForCausalLM, tokenizer: PreTrainedTokenizerFast, stride=None, batch_size=8) -> None:
+    def __init__(
+        self, model: AutoModelForCausalLM, tokenizer: PreTrainedTokenizerFast, stride=None, batch_size=8
+    ) -> None:
         """
         :param model: A byte-level LLM from `transformers`.
         :param tokenizer: Tokenizer from `transformers`.
@@ -143,7 +146,9 @@ class LLMPredictor(Predictor):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = model.to(self.device)
         self.loss_fct = torch.nn.CrossEntropyLoss(reduction="none")
-        assert self.space_token_id == tokenizer.convert_tokens_to_ids("Ġ"), "Space token ID does not match the expected value."
+        assert self.space_token_id == tokenizer.convert_tokens_to_ids("Ġ"), (
+            "Space token ID does not match the expected value."
+        )
 
     def __call__(self, examples: Any) -> Any:
         """Process a batch of examples."""
@@ -158,21 +163,23 @@ class LLMPredictor(Predictor):
         long_ids = torch.tensor(long_ids, dtype=torch.int64).to(self.device)
 
         # Simulate a context for the first `ctx_length` tokens by adding the last `ctx_length - stride` tokens of the final example
-        long_ids = torch.cat([long_ids[-(self.ctx_length-self.stride):], long_ids], dim=0)
+        long_ids = torch.cat([long_ids[-(self.ctx_length - self.stride) :], long_ids], dim=0)
 
         # Pad the sequence so it is a multiple of the stride
         if len(long_ids) % self.stride != 0:
             pad_length = self.stride - (len(long_ids) % self.stride)
             long_ids = torch.cat([long_ids, torch.full((pad_length,), self.pad_token_id).to(self.device)], dim=0)
 
-        # Use the stride to split the long sequence into overlapping sequences. 
+        # Use the stride to split the long sequence into overlapping sequences.
         # This lets us process the entire sequence in chunks, while still maintaining the context.
         num_vectors = (len(long_ids) - self.ctx_length + self.stride) // self.stride
         strided_ids = long_ids.as_strided(size=(num_vectors, 2048), stride=(self.stride, 1))
 
         # Ensure we can process the entire sequence in batches of self.batch_size
         while len(strided_ids) % self.batch_size != 0:
-            strided_ids = torch.cat([strided_ids, torch.full((1, self.ctx_length), self.pad_token_id).to(self.device)], dim=0)
+            strided_ids = torch.cat(
+                [strided_ids, torch.full((1, self.ctx_length), self.pad_token_id).to(self.device)], dim=0
+            )
         strided_ids = strided_ids.view(-1, self.batch_size, self.ctx_length)
 
         # Feed the strided IDs to the model in batches
@@ -183,14 +190,18 @@ class LLMPredictor(Predictor):
                 ids = strided_ids[i]
                 logits = self.model(ids).logits.detach()
                 for batch_idx in range(self.batch_size):
-                    stride_ids = ids[batch_idx][-self.stride:]
-                    stride_logits = logits[batch_idx][-self.stride:]
+                    stride_ids = ids[batch_idx][-self.stride :]
+                    stride_logits = logits[batch_idx][-self.stride :]
 
                     surprisal = self.loss_fct(stride_logits, stride_ids)
                     entropy = torch.distributions.Categorical(logits=stride_logits).entropy()
-                    space_prob = self.loss_fct(stride_logits, torch.full(stride_ids.shape, self.space_token_id).to(self.device))
-                    eos_prob = self.loss_fct(stride_logits, torch.full(stride_ids.shape, self.eos_token_id).to(self.device))
-                    
+                    space_prob = self.loss_fct(
+                        stride_logits, torch.full(stride_ids.shape, self.space_token_id).to(self.device)
+                    )
+                    eos_prob = self.loss_fct(
+                        stride_logits, torch.full(stride_ids.shape, self.eos_token_id).to(self.device)
+                    )
+
                     surprisals = torch.cat([surprisals, surprisal], dim=0)
                     entropies = torch.cat([entropies, entropy], dim=0)
                     space_probs = torch.cat([space_probs, space_prob], dim=0)
@@ -198,20 +209,34 @@ class LLMPredictor(Predictor):
 
         # We recover the original examples by splitting around the EOS token
         # (remember that we added context to the front of length ctx_length+stride that needs removing here)
-        eos_indices = torch.where(long_ids[self.ctx_length-self.stride:] == self.eos_token_id)[0]
+        eos_indices = torch.where(long_ids[self.ctx_length - self.stride :] == self.eos_token_id)[0]
         eos_indices = torch.cat([torch.tensor([-1]).to(self.device), eos_indices])
 
-        examples['Entropy'] = [entropies[eos_indices[i]+1:eos_indices[i+1]].tolist() for i in range(len(eos_indices)-1)]
-        examples['Surprisal'] = [surprisals[eos_indices[i]+1:eos_indices[i+1]].tolist() for i in range(len(eos_indices)-1)]
-        examples['Space Probability'] = [space_probs[eos_indices[i]+1:eos_indices[i+1]].tolist() for i in range(len(eos_indices)-1)]
-        examples['EOS Probability'] = [eos_probs[eos_indices[i]+1:eos_indices[i+1]].tolist() for i in range(len(eos_indices)-1)]
+        examples["Entropy"] = [
+            entropies[eos_indices[i] + 1 : eos_indices[i + 1]].tolist() for i in range(len(eos_indices) - 1)
+        ]
+        examples["Surprisal"] = [
+            surprisals[eos_indices[i] + 1 : eos_indices[i + 1]].tolist() for i in range(len(eos_indices) - 1)
+        ]
+        examples["Space Probability"] = [
+            space_probs[eos_indices[i] + 1 : eos_indices[i + 1]].tolist() for i in range(len(eos_indices) - 1)
+        ]
+        examples["EOS Probability"] = [
+            eos_probs[eos_indices[i] + 1 : eos_indices[i + 1]].tolist() for i in range(len(eos_indices) - 1)
+        ]
 
         return examples
 
+
 SUPPORTED_MODELS = ["5-gram", "fw57M"]
 
+
 @app.command()
-def get_llm_predictions(model_type: Annotated[str, typer.Argument(help=f"Type of model to use for predictions. Supported types: {SUPPORTED_MODELS}")]) -> None:
+def get_llm_predictions(
+    model_type: Annotated[
+        str, typer.Argument(help=f"Type of model to use for predictions. Supported types: {SUPPORTED_MODELS}")
+    ],
+) -> None:
     MODEL_REPO = f"{HF_USERNAME}/{BYTE_MODELS_REPO_ID}"
     TOKENIZER_REPO = f"{HF_USERNAME}/{TOK_REPO_ID}"
     DATA_REPO = f"{HF_USERNAME}/{FINEWEBEDU_REPO_ID}"
@@ -222,7 +247,7 @@ def get_llm_predictions(model_type: Annotated[str, typer.Argument(help=f"Type of
 
     print(f"⚙️ Starting extraction process using {model_type} model")
 
-    if model_type in ["5-gram"]: # ngram models
+    if model_type in ["5-gram"]:  # ngram models
         MODEL_NAME = f"{NGRAM_MODEL_FOLDER}/{model_type}-model.pkl"
         PREDICTOR_CLASS = NGramPredictor
         print(f"⚙️ Downloading {model_type} model from {MODEL_REPO}/{MODEL_NAME}")
@@ -231,7 +256,7 @@ def get_llm_predictions(model_type: Annotated[str, typer.Argument(help=f"Type of
         )
         with open(model_path, "rb") as f:
             model = pickle.load(f)
-    elif model_type in ["fw57M"]: # byte-level LLMs
+    elif model_type in ["fw57M"]:  # byte-level LLMs
         MODEL_NAME = f"{BYTE_LLM_MODEL_FOLDER}/{model_type}"
         PREDICTOR_CLASS = LLMPredictor
         print(f"⚙️ Downloading {model_type} model from {MODEL_REPO}/{MODEL_NAME}")
