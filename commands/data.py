@@ -12,7 +12,7 @@ from datatrove.pipeline.writers.huggingface import ParquetWriter
 from datatrove.utils.batching import batched
 from huggingface_hub import HfApi
 from rich import print
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer  # type: ignore
 
 from commands.configs import (
     BYTE_DATA_FOLDER,
