@@ -233,7 +233,7 @@ class InfoTokenizerTrainer:
         self.logger.info(f"Starting training with vocab size {vocab_size}...")
         if show_progress:
             with tqdm(total=vocab_size) as pbar:
-                pbar.update(100 * (len(self.id_to_token)//100))
+                pbar.update(100 * (len(self.id_to_token) // 100))
                 while len(self.id_to_token) < vocab_size:
                     self.create_merge()
                     if len(self.id_to_token) % 100 == 0:
@@ -372,10 +372,14 @@ def create_subwordlevel(
         repo_id = f"{HF_USERNAME}/{folder_path.parent}"
         logger.info(f"🆙 Uploading the tokenizer to {repo_id} on the HF Hub")
 
-        path_in_repo = folder_path.name+f"_{vocab_size}"
+        path_in_repo = folder_path.name + f"_{vocab_size}"
         api.create_repo(repo_id, exist_ok=True)
         api.upload_folder(
-            folder_path=folder_path_specific, repo_id=repo_id, path_in_repo=path_in_repo, repo_type="model", revision="main"
+            folder_path=folder_path_specific,
+            repo_id=repo_id,
+            path_in_repo=path_in_repo,
+            repo_type="model",
+            revision="main",
         )
         logger.info(f"✅ Successfully uploaded the tokenizer to {repo_id}")
 

@@ -5,15 +5,15 @@ import srsly
 import typer
 import yaml
 from huggingface_hub import HfApi, logging
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer  # type: ignore
 
+from commands.configs import HF_USERNAME
 from src.trainer import load_hf_from_pl
 from src.utilities import get_logger
 
 logger = get_logger("uploader")
 logging.set_verbosity_info()  # or _debug for more info
 
-from .configs import HF_USERNAME
 
 app = typer.Typer()
 
