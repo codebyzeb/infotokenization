@@ -327,6 +327,10 @@ def create_subwordlevel(
         list[int], typer.Option(help="Vocabulary sizes for the tokenizer.")
     ] = DEFAULT_TOKENIZER_SIZES,
 ) -> None:
+    
+    if measure == "SpaceProbability":
+        measure = "Space Probability"
+
     tokenizer_name = f"{model_type}_{measure}_{merge_type}"
     folder_path = Path(TOK_REPO_ID) / tokenizer_name
     api = HfApi()
