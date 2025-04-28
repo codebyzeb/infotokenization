@@ -181,3 +181,4 @@ data/
 lib/
 outputs/
 .datatrove/
+*.out

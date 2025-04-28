@@ -41,8 +41,8 @@ run_folder: ${model}_${dataset}_${tok_name}
 
 dataset: finewebedu-20B
 pwd: /home/zg258/rds/hpc-work/infotokenization
-train_data_path: ${pwd}/data/${dataset}/${tok_name}-subset/train
-val_data_path: ${pwd}/data/${dataset}/${tok_name}-subset/validation
+train_data_path: ${pwd}/data/${dataset}/${tok_name}/train
+val_data_path: ${pwd}/data/${dataset}/${tok_name}/validation
 
 model: me100M
 resume_from_checkpoint: null
@@ -52,7 +52,7 @@ seed: 42
 torch_compile: true
 
 data:
-  batch_size: 32
+  batch_size: 16
   eval_batch_size: 64
   shuffle: true
   drop_last: false

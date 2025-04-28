@@ -95,19 +95,22 @@ source .env # huggingface token
 uv sync
 
 model=fw57M-tied
-tokenizer=frequency_64000
+#tokenizer=frequency_64000
 #tokenizer=fw57M_Surprisal_frequency-mean-post-merge_64000
-#tokenizer=fw57M_Surprisal_min-mean-post-merge_64000
+tokenizer=fw57M_Surprisal_min-mean-post-merge_64000
+
+# Avoid fragmentation
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
 srun uv run scripts/train.py \
-    +callbacks.grad_accum.scheduling="{0: 1}" \
-    data.eval_batch_size=128 \
+    +callbacks.grad_accum.scheduling="{0: 2}" \
+    data.eval_batch_size=64 \
     model=$model \
     pwd=/home/zg258/rds/hpc-work/infotokenization \
     torch_compile=true \
     trainer.devices=4 \
     data.num_workers=12 \
-    hydra.run.dir=outputs/$model \
+    hydra.run.dir=outputs/$model/$tokenizer \
     run_folder=. \
     resume_from_checkpoint=.checkpoints/last.ckpt \
     tok_name=$tokenizer
