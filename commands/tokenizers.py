@@ -42,6 +42,7 @@ class InfoTokenizerTrainer:
         "frequency",
         "minimise-deviation",
         "frequency-mean-post-merge",
+        "mutual-information",
     ]
 
     def __init__(
@@ -114,7 +115,8 @@ class InfoTokenizerTrainer:
         """
 
         # Create unique ID for each pair of adjacent tokens using the token ID and previous token ID
-        pairs = self.ids * (len(self.id_to_token) + 1) + self.ids.roll(1)
+        num_ids = len(self.id_to_token)
+        pairs = self.ids * (num_ids + 1) + self.ids.roll(1)
         unique_pairs, inverse_indices = torch.unique(pairs, return_inverse=True)
         pair_counts = torch.bincount(inverse_indices)
 
@@ -134,8 +136,16 @@ class InfoTokenizerTrainer:
             pair_score /= pair_counts
         elif self.merge_type == "frequency":
             # Use the frequency of the pair, like BPE
-            # but negated since the min below picks the most frequent
+            # but negated since the we want the most frequent
             pair_score = -pair_counts
+            # Add a large value to any invalid positions
+            pair_score.index_add_(0, inverse_indices, (self.mask * 1e9).to(pair_score.dtype))
+        elif self.merge_type == "mutual-information":
+            # Use the mutual information of the pair, like WordPiece (also negated since we want the max)
+            token_counts = torch.bincount(self.ids)
+            left_count = token_counts[unique_pairs % (num_ids + 1)]
+            right_count = token_counts[unique_pairs // (num_ids + 1)]
+            pair_score = - pair_counts / (left_count * right_count)
             # Add a large value to any invalid positions
             pair_score.index_add_(0, inverse_indices, (self.mask * 1e9).to(pair_score.dtype))
 
@@ -199,9 +209,9 @@ class InfoTokenizerTrainer:
         merge_positions = pairs == min_pair
 
         # Decode unique pair ID to get left and right phonemes
-        left_token = min_pair % (len(self.id_to_token) + 1)
+        left_token = min_pair % (num_ids + 1)
         left_token = self.id_to_token[left_token.item()]
-        right_token = min_pair // (len(self.id_to_token) + 1)
+        right_token = min_pair // (num_ids + 1)
         right_token = self.id_to_token[right_token.item()]
 
         # Create new token and add to vocabulary
@@ -210,7 +220,7 @@ class InfoTokenizerTrainer:
             raise RuntimeError(f"Error: merge already exists:  '{left_token}' + '{right_token}' --> '{joined}'")
             new_id = [k for k, v in self.id_to_token.items() if v == joined][0]
         else:
-            new_id = len(self.id_to_token)
+            new_id = num_ids
             self.id_to_token[new_id] = joined
         num_merges = torch.sum(merge_positions).item()
         self.merges.append((left_token, right_token, joined, num_merges))
