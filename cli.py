@@ -1,8 +1,9 @@
+import multiprocessing
 import os
 
 import typer
 
-from commands import data, extract, ngram, tokenizers, upload
+from commands import analysis, data, extract, ngram, tokenizers, upload
 
 # Set this here in order to have effect
 # See: https://github.com/huggingface/transformers/issues/25305#issuecomment-1852931139
@@ -15,10 +16,11 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
 
 app = typer.Typer()
-app.add_typer(tokenizers.app, name="tokenizers")
+app.add_typer(analysis.app, name="analysis")
 app.add_typer(data.app, name="data")
 app.add_typer(ngram.app, name="ngram")
 app.add_typer(extract.app, name="extract")
+app.add_typer(tokenizers.app, name="tokenizers")
 app.add_typer(upload.app, name="upload")
 
 
