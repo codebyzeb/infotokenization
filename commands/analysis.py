@@ -156,8 +156,9 @@ def get_tokenizer_statistics(
             "tokenizer_name": folder,
             "fertility": fertility,
             "proportion_continued": proportion_continued,
-            "total_split_words": total_words,
-            "total_words": total_tokens,
+            "total_split_words": total_continuation_words,
+            "total_words": total_words,
+            "total_tokens": total_tokens,
             "split_lengths_distribution": str(split_length_distribution)
         }
 

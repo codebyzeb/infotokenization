@@ -21,7 +21,7 @@ BYTE_LLM_MODEL_FOLDER = "llm"
 MAX_NGRAM_LENGTH = 5
 
 # subset size for training byte-level models
-NUM_TRAIN_ROWS = 100000
+NUM_TRAIN_ROWS = 100_000
 
 # configs for splitting common corpus
 TOKENS_PER_LANGUAGE = 10_000_000

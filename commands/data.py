@@ -230,20 +230,27 @@ def commoncorpus_subset(languages : list[str] = LANGUAGES,
     print("✅ Successfully created and uploaded the subset of Common Corpus dataset")
 
 @app.command()
-def finewebedu_subset(subset_size: int = NUM_TRAIN_ROWS, subfolder: str = BYTE_DATA_SUBSET_FOLDER) -> None:
+def finewebedu_subset(subset_size: int = NUM_TRAIN_ROWS,
+                      subfolder: str = BYTE_DATA_SUBSET_FOLDER,
+                      shift_amount : int = 0) -> None:
     DATA_REPO_ID = f"{HF_USERNAME}/{FINEWEBEDU_REPO_ID}"
 
     print(f"⚙️ Creating a {subset_size}-row subset of FineWebEdu located at \n\t{DATA_REPO_ID=}")
 
     # Load the dataset
     dataset = load_dataset(DATA_REPO_ID, name=BYTE_DATA_FOLDER, split="train", streaming=True)
+    if shift_amount > 0:
+        print(f"⚙️ Shifting the dataset by {shift_amount} * {subset_size} rows")
+    for i in range(shift_amount):
+        dataset = dataset.skip(subset_size)
     dataset = list(dataset.take(subset_size))  # type: ignore
     dataset = Dataset.from_list(dataset)
 
     print(f"✅ Successfully created a {subset_size}-row subset of FineWebEdu dataset")
     print(f"🆙 Uploading the subset to {DATA_REPO_ID} on the HF Hub")
 
-    dataset.push_to_hub(repo_id=DATA_REPO_ID, set_default=False, config_name=subfolder, max_shard_size="2GB")
+    config_name = subfolder if shift_amount == 0 else f"{subfolder}_{shift_amount}"
+    dataset.push_to_hub(repo_id=DATA_REPO_ID, set_default=False, config_name=config_name, max_shard_size="2GB")
     print("✅ Successfully created and uploaded the subset of FineWebEdu dataset")
 
 
