@@ -1,0 +1,537 @@
+tokenizer	category	measure	r	p
+bytelevel_output	words	NumSplits vs RT		
+bytelevel_output	words	NumSplits vs Acc	0.05807684698279569	6.72803250599839e-23
+bytelevel_output	words	Wordiness vs RT		
+bytelevel_output	words	Wordiness vs Acc	0.07147127025498963	7.386627085140802e-34
+bytelevel_output	nonwords	NumSplits vs RT		
+bytelevel_output	nonwords	NumSplits vs Acc	-0.009472162008659787	0.11867910659903073
+bytelevel_output	nonwords	Wordiness vs RT		
+bytelevel_output	nonwords	Wordiness vs Acc	-0.028586065473300826	2.4793910063133803e-06
+frequency_128000_output	words	NumSplits vs RT		
+frequency_128000_output	words	NumSplits vs Acc	-0.4747902937806653	0.0
+frequency_128000_output	words	Wordiness vs RT		
+frequency_128000_output	words	Wordiness vs Acc	0.5058072391734788	0.0
+frequency_128000_output	nonwords	NumSplits vs RT		
+frequency_128000_output	nonwords	NumSplits vs Acc	0.20202136362285836	7.152696165774546e-248
+frequency_128000_output	nonwords	Wordiness vs RT		
+frequency_128000_output	nonwords	Wordiness vs Acc	-0.19922853084715123	5.50150451568031e-241
+frequency_16000_output	words	NumSplits vs RT		
+frequency_16000_output	words	NumSplits vs Acc	-0.28861789694977674	0.0
+frequency_16000_output	words	Wordiness vs RT		
+frequency_16000_output	words	Wordiness vs Acc	0.35335501676888204	0.0
+frequency_16000_output	nonwords	NumSplits vs RT		
+frequency_16000_output	nonwords	NumSplits vs Acc	0.16711590044962582	3.645601316236211e-169
+frequency_16000_output	nonwords	Wordiness vs RT		
+frequency_16000_output	nonwords	Wordiness vs Acc	-0.1783988283895304	7.16796868825553e-193
+frequency_256000_output	words	NumSplits vs RT		
+frequency_256000_output	words	NumSplits vs Acc	-0.47607989114743104	0.0
+frequency_256000_output	words	Wordiness vs RT		
+frequency_256000_output	words	Wordiness vs Acc	0.49427398993250227	0.0
+frequency_256000_output	nonwords	NumSplits vs RT		
+frequency_256000_output	nonwords	NumSplits vs Acc	0.2050148353016672	2.2823669209446153e-255
+frequency_256000_output	nonwords	Wordiness vs RT		
+frequency_256000_output	nonwords	Wordiness vs Acc	-0.19687477222459332	2.907299417435852e-235
+frequency_32000_output	words	NumSplits vs RT		
+frequency_32000_output	words	NumSplits vs Acc	-0.364681033982852	0.0
+frequency_32000_output	words	Wordiness vs RT		
+frequency_32000_output	words	Wordiness vs Acc	0.4207530934625268	0.0
+frequency_32000_output	nonwords	NumSplits vs RT		
+frequency_32000_output	nonwords	NumSplits vs Acc	0.1809602469266619	1.756284809065501e-198
+frequency_32000_output	nonwords	Wordiness vs RT		
+frequency_32000_output	nonwords	Wordiness vs Acc	-0.1885468201400634	1.3334455605478037e-215
+frequency_64000_output	words	NumSplits vs RT		
+frequency_64000_output	words	NumSplits vs Acc	-0.4317670771600258	0.0
+frequency_64000_output	words	Wordiness vs RT		
+frequency_64000_output	words	Wordiness vs Acc	0.4765833536288148	0.0
+frequency_64000_output	nonwords	NumSplits vs RT		
+frequency_64000_output	nonwords	NumSplits vs Acc	0.19840848655792495	5.529709882551132e-239
+frequency_64000_output	nonwords	Wordiness vs RT		
+frequency_64000_output	nonwords	Wordiness vs Acc	-0.19925726131808977	4.6791968869056385e-241
+frequency_8064_output	words	NumSplits vs RT		
+frequency_8064_output	words	NumSplits vs Acc	-0.23085651462883985	0.0
+frequency_8064_output	words	Wordiness vs RT		
+frequency_8064_output	words	Wordiness vs Acc	0.29923054636457275	0.0
+frequency_8064_output	nonwords	NumSplits vs RT		
+frequency_8064_output	nonwords	NumSplits vs Acc	0.148968938075763	1.8986407270201798e-134
+frequency_8064_output	nonwords	Wordiness vs RT		
+frequency_8064_output	nonwords	Wordiness vs Acc	-0.16197423447062684	6.65286752018237e-159
+fw57M_Entropy_frequency-mean-post-merge_128000_output	words	NumSplits vs RT		
+fw57M_Entropy_frequency-mean-post-merge_128000_output	words	NumSplits vs Acc	-0.464196053366406	0.0
+fw57M_Entropy_frequency-mean-post-merge_128000_output	words	Wordiness vs RT		
+fw57M_Entropy_frequency-mean-post-merge_128000_output	words	Wordiness vs Acc	0.4044053869443581	0.0
+fw57M_Entropy_frequency-mean-post-merge_128000_output	nonwords	NumSplits vs RT		
+fw57M_Entropy_frequency-mean-post-merge_128000_output	nonwords	NumSplits vs Acc	0.1809858858651421	1.5417080081845206e-198
+fw57M_Entropy_frequency-mean-post-merge_128000_output	nonwords	Wordiness vs RT		
+fw57M_Entropy_frequency-mean-post-merge_128000_output	nonwords	Wordiness vs Acc	-0.14145004894102714	2.7846433832309497e-121
+fw57M_Entropy_frequency-mean-post-merge_16000_output	words	NumSplits vs RT		
+fw57M_Entropy_frequency-mean-post-merge_16000_output	words	NumSplits vs Acc	-0.27664263516744003	0.0
+fw57M_Entropy_frequency-mean-post-merge_16000_output	words	Wordiness vs RT		
+fw57M_Entropy_frequency-mean-post-merge_16000_output	words	Wordiness vs Acc	0.29480304752603775	0.0
+fw57M_Entropy_frequency-mean-post-merge_16000_output	nonwords	NumSplits vs RT		
+fw57M_Entropy_frequency-mean-post-merge_16000_output	nonwords	NumSplits vs Acc	0.14991673560318036	3.701527196361813e-136
+fw57M_Entropy_frequency-mean-post-merge_16000_output	nonwords	Wordiness vs RT		
+fw57M_Entropy_frequency-mean-post-merge_16000_output	nonwords	Wordiness vs Acc	-0.13379263447883283	1.3417165304389957e-108
+fw57M_Entropy_frequency-mean-post-merge_256000_output	words	NumSplits vs RT		
+fw57M_Entropy_frequency-mean-post-merge_256000_output	words	NumSplits vs Acc	-0.4615172257419717	0.0
+fw57M_Entropy_frequency-mean-post-merge_256000_output	words	Wordiness vs RT		
+fw57M_Entropy_frequency-mean-post-merge_256000_output	words	Wordiness vs Acc	0.38785992043608086	0.0
+fw57M_Entropy_frequency-mean-post-merge_256000_output	nonwords	NumSplits vs RT		
+fw57M_Entropy_frequency-mean-post-merge_256000_output	nonwords	NumSplits vs Acc	0.17627535247278095	2.7695741492239252e-188
+fw57M_Entropy_frequency-mean-post-merge_256000_output	nonwords	Wordiness vs RT		
+fw57M_Entropy_frequency-mean-post-merge_256000_output	nonwords	Wordiness vs Acc	-0.13584174794314657	6.38641831477007e-112
+fw57M_Entropy_frequency-mean-post-merge_32000_output	words	NumSplits vs RT		
+fw57M_Entropy_frequency-mean-post-merge_32000_output	words	NumSplits vs Acc	-0.3574132580208179	0.0
+fw57M_Entropy_frequency-mean-post-merge_32000_output	words	Wordiness vs RT		
+fw57M_Entropy_frequency-mean-post-merge_32000_output	words	Wordiness vs Acc	0.3519457881555394	0.0
+fw57M_Entropy_frequency-mean-post-merge_32000_output	nonwords	NumSplits vs RT		
+fw57M_Entropy_frequency-mean-post-merge_32000_output	nonwords	NumSplits vs Acc	0.166423416890143	9.192777683841518e-168
+fw57M_Entropy_frequency-mean-post-merge_32000_output	nonwords	Wordiness vs RT		
+fw57M_Entropy_frequency-mean-post-merge_32000_output	nonwords	Wordiness vs Acc	-0.14075425365106994	4.2402934485984294e-120
+fw57M_Entropy_frequency-mean-post-merge_64000_output	words	NumSplits vs RT		
+fw57M_Entropy_frequency-mean-post-merge_64000_output	words	NumSplits vs Acc	-0.4306248607734436	0.0
+fw57M_Entropy_frequency-mean-post-merge_64000_output	words	Wordiness vs RT		
+fw57M_Entropy_frequency-mean-post-merge_64000_output	words	Wordiness vs Acc	0.39792483454916794	0.0
+fw57M_Entropy_frequency-mean-post-merge_64000_output	nonwords	NumSplits vs RT		
+fw57M_Entropy_frequency-mean-post-merge_64000_output	nonwords	NumSplits vs Acc	0.17936685045449227	5.5583446171025396e-195
+fw57M_Entropy_frequency-mean-post-merge_64000_output	nonwords	Wordiness vs RT		
+fw57M_Entropy_frequency-mean-post-merge_64000_output	nonwords	Wordiness vs Acc	-0.1451114121727077	1.3239972533487098e-127
+fw57M_Entropy_frequency-mean-post-merge_8064_output	words	NumSplits vs RT		
+fw57M_Entropy_frequency-mean-post-merge_8064_output	words	NumSplits vs Acc	-0.21357450375759043	1.255646665305962e-293
+fw57M_Entropy_frequency-mean-post-merge_8064_output	words	Wordiness vs RT		
+fw57M_Entropy_frequency-mean-post-merge_8064_output	words	Wordiness vs Acc	0.2478037416009727	0.0
+fw57M_Entropy_frequency-mean-post-merge_8064_output	nonwords	NumSplits vs RT		
+fw57M_Entropy_frequency-mean-post-merge_8064_output	nonwords	NumSplits vs Acc	0.1374070128648119	1.7068312005268235e-114
+fw57M_Entropy_frequency-mean-post-merge_8064_output	nonwords	Wordiness vs RT		
+fw57M_Entropy_frequency-mean-post-merge_8064_output	nonwords	Wordiness vs Acc	-0.12978433757266092	2.992586836250485e-102
+fw57M_Entropy_min-mean-post-merge_128000_output	words	NumSplits vs RT		
+fw57M_Entropy_min-mean-post-merge_128000_output	words	NumSplits vs Acc	-0.13456684559573293	3.506129680828114e-116
+fw57M_Entropy_min-mean-post-merge_128000_output	words	Wordiness vs RT		
+fw57M_Entropy_min-mean-post-merge_128000_output	words	Wordiness vs Acc	0.17491361568977648	3.912297858334437e-196
+fw57M_Entropy_min-mean-post-merge_128000_output	nonwords	NumSplits vs RT		
+fw57M_Entropy_min-mean-post-merge_128000_output	nonwords	NumSplits vs Acc	0.0866475954255076	2.189024414290408e-46
+fw57M_Entropy_min-mean-post-merge_128000_output	nonwords	Wordiness vs RT		
+fw57M_Entropy_min-mean-post-merge_128000_output	nonwords	Wordiness vs Acc	-0.09945523460605221	1.2975521302749075e-60
+fw57M_Entropy_min-mean-post-merge_16000_output	words	NumSplits vs RT		
+fw57M_Entropy_min-mean-post-merge_16000_output	words	NumSplits vs Acc	-0.016900445277265547	0.004174137710595099
+fw57M_Entropy_min-mean-post-merge_16000_output	words	Wordiness vs RT		
+fw57M_Entropy_min-mean-post-merge_16000_output	words	Wordiness vs Acc	0.08116417239393434	3.390503810985686e-43
+fw57M_Entropy_min-mean-post-merge_16000_output	nonwords	NumSplits vs RT		
+fw57M_Entropy_min-mean-post-merge_16000_output	nonwords	NumSplits vs Acc	0.03718832609612137	8.899826388937351e-10
+fw57M_Entropy_min-mean-post-merge_16000_output	nonwords	Wordiness vs RT		
+fw57M_Entropy_min-mean-post-merge_16000_output	nonwords	Wordiness vs Acc	-0.06105448391576097	7.759625302569874e-24
+fw57M_Entropy_min-mean-post-merge_256000_output	words	NumSplits vs RT		
+fw57M_Entropy_min-mean-post-merge_256000_output	words	NumSplits vs Acc	-0.3825853299682435	0.0
+fw57M_Entropy_min-mean-post-merge_256000_output	words	Wordiness vs RT		
+fw57M_Entropy_min-mean-post-merge_256000_output	words	Wordiness vs Acc	0.3627155200756409	0.0
+fw57M_Entropy_min-mean-post-merge_256000_output	nonwords	NumSplits vs RT		
+fw57M_Entropy_min-mean-post-merge_256000_output	nonwords	NumSplits vs Acc	0.162044823913916	4.835229788476524e-159
+fw57M_Entropy_min-mean-post-merge_256000_output	nonwords	Wordiness vs RT		
+fw57M_Entropy_min-mean-post-merge_256000_output	nonwords	Wordiness vs Acc	-0.13143902314907438	7.576441152411558e-105
+fw57M_Entropy_min-mean-post-merge_32000_output	words	NumSplits vs RT		
+fw57M_Entropy_min-mean-post-merge_32000_output	words	NumSplits vs Acc	-0.037964757978267476	1.2182668623937304e-10
+fw57M_Entropy_min-mean-post-merge_32000_output	words	Wordiness vs RT		
+fw57M_Entropy_min-mean-post-merge_32000_output	words	Wordiness vs Acc	0.09872548554361446	3.771603480229029e-63
+fw57M_Entropy_min-mean-post-merge_32000_output	nonwords	NumSplits vs RT		
+fw57M_Entropy_min-mean-post-merge_32000_output	nonwords	NumSplits vs Acc	0.03787230987827641	4.354080688825979e-10
+fw57M_Entropy_min-mean-post-merge_32000_output	nonwords	Wordiness vs RT		
+fw57M_Entropy_min-mean-post-merge_32000_output	nonwords	Wordiness vs Acc	-0.06214322771866376	1.2273235147893068e-24
+fw57M_Entropy_min-mean-post-merge_64000_output	words	NumSplits vs RT		
+fw57M_Entropy_min-mean-post-merge_64000_output	words	NumSplits vs Acc	-0.06404294941016045	1.6753447171616264e-27
+fw57M_Entropy_min-mean-post-merge_64000_output	words	Wordiness vs RT		
+fw57M_Entropy_min-mean-post-merge_64000_output	words	Wordiness vs Acc	0.11885794195929936	6.915585944333384e-91
+fw57M_Entropy_min-mean-post-merge_64000_output	nonwords	NumSplits vs RT		
+fw57M_Entropy_min-mean-post-merge_64000_output	nonwords	NumSplits vs Acc	0.05588292904685056	3.18485174473226e-20
+fw57M_Entropy_min-mean-post-merge_64000_output	nonwords	Wordiness vs RT		
+fw57M_Entropy_min-mean-post-merge_64000_output	nonwords	Wordiness vs Acc	-0.07779188676747782	1.0608753299532969e-37
+fw57M_Entropy_min-mean-post-merge_8064_output	words	NumSplits vs RT		
+fw57M_Entropy_min-mean-post-merge_8064_output	words	NumSplits vs Acc	-0.007224758567241245	0.22074332830188878
+fw57M_Entropy_min-mean-post-merge_8064_output	words	Wordiness vs RT		
+fw57M_Entropy_min-mean-post-merge_8064_output	words	Wordiness vs Acc	0.07904099644252827	4.756052377098795e-41
+fw57M_Entropy_min-mean-post-merge_8064_output	nonwords	NumSplits vs RT		
+fw57M_Entropy_min-mean-post-merge_8064_output	nonwords	NumSplits vs Acc	0.03616557130040626	2.532551955452331e-09
+fw57M_Entropy_min-mean-post-merge_8064_output	nonwords	Wordiness vs RT		
+fw57M_Entropy_min-mean-post-merge_8064_output	nonwords	Wordiness vs Acc	-0.06415555547898853	3.7308998640118156e-26
+fw57M_Surprisal_frequency-mean-post-merge_128000_output	words	NumSplits vs RT		
+fw57M_Surprisal_frequency-mean-post-merge_128000_output	words	NumSplits vs Acc	-0.464196053366406	0.0
+fw57M_Surprisal_frequency-mean-post-merge_128000_output	words	Wordiness vs RT		
+fw57M_Surprisal_frequency-mean-post-merge_128000_output	words	Wordiness vs Acc	0.4044053869443581	0.0
+fw57M_Surprisal_frequency-mean-post-merge_128000_output	nonwords	NumSplits vs RT		
+fw57M_Surprisal_frequency-mean-post-merge_128000_output	nonwords	NumSplits vs Acc	0.1809858858651421	1.5417080081845206e-198
+fw57M_Surprisal_frequency-mean-post-merge_128000_output	nonwords	Wordiness vs RT		
+fw57M_Surprisal_frequency-mean-post-merge_128000_output	nonwords	Wordiness vs Acc	-0.14145004894102714	2.7846433832309497e-121
+fw57M_Surprisal_frequency-mean-post-merge_16000_output	words	NumSplits vs RT		
+fw57M_Surprisal_frequency-mean-post-merge_16000_output	words	NumSplits vs Acc	-0.27664263516744003	0.0
+fw57M_Surprisal_frequency-mean-post-merge_16000_output	words	Wordiness vs RT		
+fw57M_Surprisal_frequency-mean-post-merge_16000_output	words	Wordiness vs Acc	0.29480304752603775	0.0
+fw57M_Surprisal_frequency-mean-post-merge_16000_output	nonwords	NumSplits vs RT		
+fw57M_Surprisal_frequency-mean-post-merge_16000_output	nonwords	NumSplits vs Acc	0.14991673560318036	3.701527196361813e-136
+fw57M_Surprisal_frequency-mean-post-merge_16000_output	nonwords	Wordiness vs RT		
+fw57M_Surprisal_frequency-mean-post-merge_16000_output	nonwords	Wordiness vs Acc	-0.13379263447883283	1.3417165304389957e-108
+fw57M_Surprisal_frequency-mean-post-merge_256000_output	words	NumSplits vs RT		
+fw57M_Surprisal_frequency-mean-post-merge_256000_output	words	NumSplits vs Acc	-0.4615172257419717	0.0
+fw57M_Surprisal_frequency-mean-post-merge_256000_output	words	Wordiness vs RT		
+fw57M_Surprisal_frequency-mean-post-merge_256000_output	words	Wordiness vs Acc	0.38785992043608086	0.0
+fw57M_Surprisal_frequency-mean-post-merge_256000_output	nonwords	NumSplits vs RT		
+fw57M_Surprisal_frequency-mean-post-merge_256000_output	nonwords	NumSplits vs Acc	0.17627535247278095	2.7695741492239252e-188
+fw57M_Surprisal_frequency-mean-post-merge_256000_output	nonwords	Wordiness vs RT		
+fw57M_Surprisal_frequency-mean-post-merge_256000_output	nonwords	Wordiness vs Acc	-0.13584174794314657	6.38641831477007e-112
+fw57M_Surprisal_frequency-mean-post-merge_32000_output	words	NumSplits vs RT		
+fw57M_Surprisal_frequency-mean-post-merge_32000_output	words	NumSplits vs Acc	-0.3574132580208179	0.0
+fw57M_Surprisal_frequency-mean-post-merge_32000_output	words	Wordiness vs RT		
+fw57M_Surprisal_frequency-mean-post-merge_32000_output	words	Wordiness vs Acc	0.3519457881555394	0.0
+fw57M_Surprisal_frequency-mean-post-merge_32000_output	nonwords	NumSplits vs RT		
+fw57M_Surprisal_frequency-mean-post-merge_32000_output	nonwords	NumSplits vs Acc	0.166423416890143	9.192777683841518e-168
+fw57M_Surprisal_frequency-mean-post-merge_32000_output	nonwords	Wordiness vs RT		
+fw57M_Surprisal_frequency-mean-post-merge_32000_output	nonwords	Wordiness vs Acc	-0.14075425365106994	4.2402934485984294e-120
+fw57M_Surprisal_frequency-mean-post-merge_64000_output	words	NumSplits vs RT		
+fw57M_Surprisal_frequency-mean-post-merge_64000_output	words	NumSplits vs Acc	-0.4306248607734436	0.0
+fw57M_Surprisal_frequency-mean-post-merge_64000_output	words	Wordiness vs RT		
+fw57M_Surprisal_frequency-mean-post-merge_64000_output	words	Wordiness vs Acc	0.39792483454916794	0.0
+fw57M_Surprisal_frequency-mean-post-merge_64000_output	nonwords	NumSplits vs RT		
+fw57M_Surprisal_frequency-mean-post-merge_64000_output	nonwords	NumSplits vs Acc	0.17936685045449227	5.5583446171025396e-195
+fw57M_Surprisal_frequency-mean-post-merge_64000_output	nonwords	Wordiness vs RT		
+fw57M_Surprisal_frequency-mean-post-merge_64000_output	nonwords	Wordiness vs Acc	-0.1451114121727077	1.3239972533487098e-127
+fw57M_Surprisal_frequency-mean-post-merge_8064_output	words	NumSplits vs RT		
+fw57M_Surprisal_frequency-mean-post-merge_8064_output	words	NumSplits vs Acc	-0.21357450375759043	1.255646665305962e-293
+fw57M_Surprisal_frequency-mean-post-merge_8064_output	words	Wordiness vs RT		
+fw57M_Surprisal_frequency-mean-post-merge_8064_output	words	Wordiness vs Acc	0.2478037416009727	0.0
+fw57M_Surprisal_frequency-mean-post-merge_8064_output	nonwords	NumSplits vs RT		
+fw57M_Surprisal_frequency-mean-post-merge_8064_output	nonwords	NumSplits vs Acc	0.1374070128648119	1.7068312005268235e-114
+fw57M_Surprisal_frequency-mean-post-merge_8064_output	nonwords	Wordiness vs RT		
+fw57M_Surprisal_frequency-mean-post-merge_8064_output	nonwords	Wordiness vs Acc	-0.12978433757266092	2.992586836250485e-102
+fw57M_Surprisal_min-mean-post-merge_128000_output	words	NumSplits vs RT		
+fw57M_Surprisal_min-mean-post-merge_128000_output	words	NumSplits vs Acc	-0.05771150035125757	1.2455355963116059e-22
+fw57M_Surprisal_min-mean-post-merge_128000_output	words	Wordiness vs RT		
+fw57M_Surprisal_min-mean-post-merge_128000_output	words	Wordiness vs Acc	0.18353549050271428	4.4890791772355396e-216
+fw57M_Surprisal_min-mean-post-merge_128000_output	nonwords	NumSplits vs RT		
+fw57M_Surprisal_min-mean-post-merge_128000_output	nonwords	NumSplits vs Acc	0.0915231181862516	1.4362411633299466e-51
+fw57M_Surprisal_min-mean-post-merge_128000_output	nonwords	Wordiness vs RT		
+fw57M_Surprisal_min-mean-post-merge_128000_output	nonwords	Wordiness vs Acc	-0.10561539317968684	3.6686281140031227e-68
+fw57M_Surprisal_min-mean-post-merge_16000_output	words	NumSplits vs RT		
+fw57M_Surprisal_min-mean-post-merge_16000_output	words	NumSplits vs Acc	0.08428732142241635	1.8549964032920497e-46
+fw57M_Surprisal_min-mean-post-merge_16000_output	words	Wordiness vs RT		
+fw57M_Surprisal_min-mean-post-merge_16000_output	words	Wordiness vs Acc	-0.03815060549474131	9.893281860742553e-11
+fw57M_Surprisal_min-mean-post-merge_16000_output	nonwords	NumSplits vs RT		
+fw57M_Surprisal_min-mean-post-merge_16000_output	nonwords	NumSplits vs Acc	-0.027519720076621818	5.7860828187178855e-06
+fw57M_Surprisal_min-mean-post-merge_16000_output	nonwords	Wordiness vs RT		
+fw57M_Surprisal_min-mean-post-merge_16000_output	nonwords	Wordiness vs Acc	0.029376692087634083	1.2975052189546804e-06
+fw57M_Surprisal_min-mean-post-merge_256000_output	words	NumSplits vs RT		
+fw57M_Surprisal_min-mean-post-merge_256000_output	words	NumSplits vs Acc	-0.4301556104714748	0.0
+fw57M_Surprisal_min-mean-post-merge_256000_output	words	Wordiness vs RT		
+fw57M_Surprisal_min-mean-post-merge_256000_output	words	Wordiness vs Acc	0.39305857294540414	0.0
+fw57M_Surprisal_min-mean-post-merge_256000_output	nonwords	NumSplits vs RT		
+fw57M_Surprisal_min-mean-post-merge_256000_output	nonwords	NumSplits vs Acc	0.14483401484525169	4.0439597570103764e-127
+fw57M_Surprisal_min-mean-post-merge_256000_output	nonwords	Wordiness vs RT		
+fw57M_Surprisal_min-mean-post-merge_256000_output	nonwords	Wordiness vs Acc	-0.12276817119598214	1.2889589201309594e-91
+fw57M_Surprisal_min-mean-post-merge_32000_output	words	NumSplits vs RT		
+fw57M_Surprisal_min-mean-post-merge_32000_output	words	NumSplits vs Acc	0.06808243817237607	7.14317909765899e-31
+fw57M_Surprisal_min-mean-post-merge_32000_output	words	Wordiness vs RT		
+fw57M_Surprisal_min-mean-post-merge_32000_output	words	Wordiness vs Acc	0.008785913622085412	0.13644265483284446
+fw57M_Surprisal_min-mean-post-merge_32000_output	nonwords	NumSplits vs RT		
+fw57M_Surprisal_min-mean-post-merge_32000_output	nonwords	NumSplits vs Acc	-0.012843957436731963	0.034360548963139115
+fw57M_Surprisal_min-mean-post-merge_32000_output	nonwords	Wordiness vs RT		
+fw57M_Surprisal_min-mean-post-merge_32000_output	nonwords	Wordiness vs Acc	-0.008237618334984877	0.17479104121628433
+fw57M_Surprisal_min-mean-post-merge_64000_output	words	NumSplits vs RT		
+fw57M_Surprisal_min-mean-post-merge_64000_output	words	NumSplits vs Acc	0.07451898600412213	1.1483071143138979e-36
+fw57M_Surprisal_min-mean-post-merge_64000_output	words	Wordiness vs RT		
+fw57M_Surprisal_min-mean-post-merge_64000_output	words	Wordiness vs Acc	0.0030999437161272087	0.5992936339193038
+fw57M_Surprisal_min-mean-post-merge_64000_output	nonwords	NumSplits vs RT		
+fw57M_Surprisal_min-mean-post-merge_64000_output	nonwords	NumSplits vs Acc	-0.002974624683024241	0.6241355197760421
+fw57M_Surprisal_min-mean-post-merge_64000_output	nonwords	Wordiness vs RT		
+fw57M_Surprisal_min-mean-post-merge_64000_output	nonwords	Wordiness vs Acc	-0.02671895336436008	1.0721822058337634e-05
+fw57M_Surprisal_min-mean-post-merge_8064_output	words	NumSplits vs RT		
+fw57M_Surprisal_min-mean-post-merge_8064_output	words	NumSplits vs Acc	0.06465665227392481	5.312099341126961e-28
+fw57M_Surprisal_min-mean-post-merge_8064_output	words	Wordiness vs RT		
+fw57M_Surprisal_min-mean-post-merge_8064_output	words	Wordiness vs Acc	0.020479665250823162	0.0005175570757558555
+fw57M_Surprisal_min-mean-post-merge_8064_output	nonwords	NumSplits vs RT		
+fw57M_Surprisal_min-mean-post-merge_8064_output	nonwords	NumSplits vs Acc	-0.002363141217629031	0.697076255017111
+fw57M_Surprisal_min-mean-post-merge_8064_output	nonwords	Wordiness vs RT		
+fw57M_Surprisal_min-mean-post-merge_8064_output	nonwords	Wordiness vs Acc	-0.033816539447362765	2.5177231412601268e-08
+ngram_Entropy_frequency-mean-post-merge_128000_output	words	NumSplits vs RT		
+ngram_Entropy_frequency-mean-post-merge_128000_output	words	NumSplits vs Acc	-0.464196053366406	0.0
+ngram_Entropy_frequency-mean-post-merge_128000_output	words	Wordiness vs RT		
+ngram_Entropy_frequency-mean-post-merge_128000_output	words	Wordiness vs Acc	0.4044053869443581	0.0
+ngram_Entropy_frequency-mean-post-merge_128000_output	nonwords	NumSplits vs RT		
+ngram_Entropy_frequency-mean-post-merge_128000_output	nonwords	NumSplits vs Acc	0.1809858858651421	1.5417080081845206e-198
+ngram_Entropy_frequency-mean-post-merge_128000_output	nonwords	Wordiness vs RT		
+ngram_Entropy_frequency-mean-post-merge_128000_output	nonwords	Wordiness vs Acc	-0.14145004894102714	2.7846433832309497e-121
+ngram_Entropy_frequency-mean-post-merge_16000_output	words	NumSplits vs RT		
+ngram_Entropy_frequency-mean-post-merge_16000_output	words	NumSplits vs Acc	-0.27664263516744003	0.0
+ngram_Entropy_frequency-mean-post-merge_16000_output	words	Wordiness vs RT		
+ngram_Entropy_frequency-mean-post-merge_16000_output	words	Wordiness vs Acc	0.29480304752603775	0.0
+ngram_Entropy_frequency-mean-post-merge_16000_output	nonwords	NumSplits vs RT		
+ngram_Entropy_frequency-mean-post-merge_16000_output	nonwords	NumSplits vs Acc	0.14991673560318036	3.701527196361813e-136
+ngram_Entropy_frequency-mean-post-merge_16000_output	nonwords	Wordiness vs RT		
+ngram_Entropy_frequency-mean-post-merge_16000_output	nonwords	Wordiness vs Acc	-0.13379263447883283	1.3417165304389957e-108
+ngram_Entropy_frequency-mean-post-merge_256000_output	words	NumSplits vs RT		
+ngram_Entropy_frequency-mean-post-merge_256000_output	words	NumSplits vs Acc	-0.4615172257419717	0.0
+ngram_Entropy_frequency-mean-post-merge_256000_output	words	Wordiness vs RT		
+ngram_Entropy_frequency-mean-post-merge_256000_output	words	Wordiness vs Acc	0.38785992043608086	0.0
+ngram_Entropy_frequency-mean-post-merge_256000_output	nonwords	NumSplits vs RT		
+ngram_Entropy_frequency-mean-post-merge_256000_output	nonwords	NumSplits vs Acc	0.17627535247278095	2.7695741492239252e-188
+ngram_Entropy_frequency-mean-post-merge_256000_output	nonwords	Wordiness vs RT		
+ngram_Entropy_frequency-mean-post-merge_256000_output	nonwords	Wordiness vs Acc	-0.13584174794314657	6.38641831477007e-112
+ngram_Entropy_frequency-mean-post-merge_32000_output	words	NumSplits vs RT		
+ngram_Entropy_frequency-mean-post-merge_32000_output	words	NumSplits vs Acc	-0.3574132580208179	0.0
+ngram_Entropy_frequency-mean-post-merge_32000_output	words	Wordiness vs RT		
+ngram_Entropy_frequency-mean-post-merge_32000_output	words	Wordiness vs Acc	0.3519457881555394	0.0
+ngram_Entropy_frequency-mean-post-merge_32000_output	nonwords	NumSplits vs RT		
+ngram_Entropy_frequency-mean-post-merge_32000_output	nonwords	NumSplits vs Acc	0.166423416890143	9.192777683841518e-168
+ngram_Entropy_frequency-mean-post-merge_32000_output	nonwords	Wordiness vs RT		
+ngram_Entropy_frequency-mean-post-merge_32000_output	nonwords	Wordiness vs Acc	-0.14075425365106994	4.2402934485984294e-120
+ngram_Entropy_frequency-mean-post-merge_64000_output	words	NumSplits vs RT		
+ngram_Entropy_frequency-mean-post-merge_64000_output	words	NumSplits vs Acc	-0.4306248607734436	0.0
+ngram_Entropy_frequency-mean-post-merge_64000_output	words	Wordiness vs RT		
+ngram_Entropy_frequency-mean-post-merge_64000_output	words	Wordiness vs Acc	0.39792483454916794	0.0
+ngram_Entropy_frequency-mean-post-merge_64000_output	nonwords	NumSplits vs RT		
+ngram_Entropy_frequency-mean-post-merge_64000_output	nonwords	NumSplits vs Acc	0.17936685045449227	5.5583446171025396e-195
+ngram_Entropy_frequency-mean-post-merge_64000_output	nonwords	Wordiness vs RT		
+ngram_Entropy_frequency-mean-post-merge_64000_output	nonwords	Wordiness vs Acc	-0.1451114121727077	1.3239972533487098e-127
+ngram_Entropy_frequency-mean-post-merge_8064_output	words	NumSplits vs RT		
+ngram_Entropy_frequency-mean-post-merge_8064_output	words	NumSplits vs Acc	-0.21357450375759043	1.255646665305962e-293
+ngram_Entropy_frequency-mean-post-merge_8064_output	words	Wordiness vs RT		
+ngram_Entropy_frequency-mean-post-merge_8064_output	words	Wordiness vs Acc	0.2478037416009727	0.0
+ngram_Entropy_frequency-mean-post-merge_8064_output	nonwords	NumSplits vs RT		
+ngram_Entropy_frequency-mean-post-merge_8064_output	nonwords	NumSplits vs Acc	0.1374070128648119	1.7068312005268235e-114
+ngram_Entropy_frequency-mean-post-merge_8064_output	nonwords	Wordiness vs RT		
+ngram_Entropy_frequency-mean-post-merge_8064_output	nonwords	Wordiness vs Acc	-0.12978433757266092	2.992586836250485e-102
+ngram_Entropy_min-mean-post-merge_128000_output	words	NumSplits vs RT		
+ngram_Entropy_min-mean-post-merge_128000_output	words	NumSplits vs Acc	-0.12258721344171591	1.3378625594625122e-96
+ngram_Entropy_min-mean-post-merge_128000_output	words	Wordiness vs RT		
+ngram_Entropy_min-mean-post-merge_128000_output	words	Wordiness vs Acc	0.1970226045847166	2.503555830169951e-249
+ngram_Entropy_min-mean-post-merge_128000_output	nonwords	NumSplits vs RT		
+ngram_Entropy_min-mean-post-merge_128000_output	nonwords	NumSplits vs Acc	0.1092599332363281	7.613440465965728e-73
+ngram_Entropy_min-mean-post-merge_128000_output	nonwords	Wordiness vs RT		
+ngram_Entropy_min-mean-post-merge_128000_output	nonwords	Wordiness vs Acc	-0.11103358796290128	3.5001738586480853e-75
+ngram_Entropy_min-mean-post-merge_16000_output	words	NumSplits vs RT		
+ngram_Entropy_min-mean-post-merge_16000_output	words	NumSplits vs Acc	0.004745263566614638	0.4212305466510913
+ngram_Entropy_min-mean-post-merge_16000_output	words	Wordiness vs RT		
+ngram_Entropy_min-mean-post-merge_16000_output	words	Wordiness vs Acc	0.07605396914524609	3.9927438968694904e-38
+ngram_Entropy_min-mean-post-merge_16000_output	nonwords	NumSplits vs RT		
+ngram_Entropy_min-mean-post-merge_16000_output	nonwords	NumSplits vs Acc	0.01850316972999464	0.0023021254816086817
+ngram_Entropy_min-mean-post-merge_16000_output	nonwords	Wordiness vs RT		
+ngram_Entropy_min-mean-post-merge_16000_output	nonwords	Wordiness vs Acc	-0.0461017027155178	3.0035429211785064e-14
+ngram_Entropy_min-mean-post-merge_256000_output	words	NumSplits vs RT		
+ngram_Entropy_min-mean-post-merge_256000_output	words	NumSplits vs Acc	-0.42138277743687746	0.0
+ngram_Entropy_min-mean-post-merge_256000_output	words	Wordiness vs RT		
+ngram_Entropy_min-mean-post-merge_256000_output	words	Wordiness vs Acc	0.39031475894618795	0.0
+ngram_Entropy_min-mean-post-merge_256000_output	nonwords	NumSplits vs RT		
+ngram_Entropy_min-mean-post-merge_256000_output	nonwords	NumSplits vs Acc	0.15407974100023805	8.379343090293686e-144
+ngram_Entropy_min-mean-post-merge_256000_output	nonwords	Wordiness vs RT		
+ngram_Entropy_min-mean-post-merge_256000_output	nonwords	Wordiness vs Acc	-0.12769778186535072	5.03556709136282e-99
+ngram_Entropy_min-mean-post-merge_32000_output	words	NumSplits vs RT		
+ngram_Entropy_min-mean-post-merge_32000_output	words	NumSplits vs Acc	0.006755709880788629	0.25218799610958365
+ngram_Entropy_min-mean-post-merge_32000_output	words	Wordiness vs RT		
+ngram_Entropy_min-mean-post-merge_32000_output	words	Wordiness vs Acc	0.07084294198896135	2.70950263565612e-33
+ngram_Entropy_min-mean-post-merge_32000_output	nonwords	NumSplits vs RT		
+ngram_Entropy_min-mean-post-merge_32000_output	nonwords	NumSplits vs Acc	0.021269073504915834	0.00045840157595462643
+ngram_Entropy_min-mean-post-merge_32000_output	nonwords	Wordiness vs RT		
+ngram_Entropy_min-mean-post-merge_32000_output	nonwords	Wordiness vs Acc	-0.04791249795271806	2.8581849720735474e-15
+ngram_Entropy_min-mean-post-merge_64000_output	words	NumSplits vs RT		
+ngram_Entropy_min-mean-post-merge_64000_output	words	NumSplits vs Acc	-0.02218155739105035	0.0001698749115956386
+ngram_Entropy_min-mean-post-merge_64000_output	words	Wordiness vs RT		
+ngram_Entropy_min-mean-post-merge_64000_output	words	Wordiness vs Acc	0.09617193841505885	5.275018571511735e-60
+ngram_Entropy_min-mean-post-merge_64000_output	nonwords	NumSplits vs RT		
+ngram_Entropy_min-mean-post-merge_64000_output	nonwords	NumSplits vs Acc	0.03748598573945751	6.530223166881657e-10
+ngram_Entropy_min-mean-post-merge_64000_output	nonwords	Wordiness vs RT		
+ngram_Entropy_min-mean-post-merge_64000_output	nonwords	Wordiness vs Acc	-0.06326971664101963	1.7602301801532038e-25
+ngram_Entropy_min-mean-post-merge_8064_output	words	NumSplits vs RT		
+ngram_Entropy_min-mean-post-merge_8064_output	words	NumSplits vs Acc	0.010947704540284896	0.06351020708086821
+ngram_Entropy_min-mean-post-merge_8064_output	words	Wordiness vs RT		
+ngram_Entropy_min-mean-post-merge_8064_output	words	Wordiness vs Acc	0.07120580345735555	1.2809375693616206e-33
+ngram_Entropy_min-mean-post-merge_8064_output	nonwords	NumSplits vs RT		
+ngram_Entropy_min-mean-post-merge_8064_output	nonwords	NumSplits vs Acc	0.0042833517556767585	0.48044897882894
+ngram_Entropy_min-mean-post-merge_8064_output	nonwords	Wordiness vs RT		
+ngram_Entropy_min-mean-post-merge_8064_output	nonwords	Wordiness vs Acc	-0.030502462925932058	5.015899582665369e-07
+ngram_Space Probability_frequency-mean-post-merge_128000_output	words	NumSplits vs RT		
+ngram_Space Probability_frequency-mean-post-merge_128000_output	words	NumSplits vs Acc	-0.464196053366406	0.0
+ngram_Space Probability_frequency-mean-post-merge_128000_output	words	Wordiness vs RT		
+ngram_Space Probability_frequency-mean-post-merge_128000_output	words	Wordiness vs Acc	0.4044053869443581	0.0
+ngram_Space Probability_frequency-mean-post-merge_128000_output	nonwords	NumSplits vs RT		
+ngram_Space Probability_frequency-mean-post-merge_128000_output	nonwords	NumSplits vs Acc	0.1809858858651421	1.5417080081845206e-198
+ngram_Space Probability_frequency-mean-post-merge_128000_output	nonwords	Wordiness vs RT		
+ngram_Space Probability_frequency-mean-post-merge_128000_output	nonwords	Wordiness vs Acc	-0.14145004894102714	2.7846433832309497e-121
+ngram_Space Probability_frequency-mean-post-merge_16000_output	words	NumSplits vs RT		
+ngram_Space Probability_frequency-mean-post-merge_16000_output	words	NumSplits vs Acc	-0.27664263516744003	0.0
+ngram_Space Probability_frequency-mean-post-merge_16000_output	words	Wordiness vs RT		
+ngram_Space Probability_frequency-mean-post-merge_16000_output	words	Wordiness vs Acc	0.29480304752603775	0.0
+ngram_Space Probability_frequency-mean-post-merge_16000_output	nonwords	NumSplits vs RT		
+ngram_Space Probability_frequency-mean-post-merge_16000_output	nonwords	NumSplits vs Acc	0.14991673560318036	3.701527196361813e-136
+ngram_Space Probability_frequency-mean-post-merge_16000_output	nonwords	Wordiness vs RT		
+ngram_Space Probability_frequency-mean-post-merge_16000_output	nonwords	Wordiness vs Acc	-0.13379263447883283	1.3417165304389957e-108
+ngram_Space Probability_frequency-mean-post-merge_256000_output	words	NumSplits vs RT		
+ngram_Space Probability_frequency-mean-post-merge_256000_output	words	NumSplits vs Acc	-0.4615172257419717	0.0
+ngram_Space Probability_frequency-mean-post-merge_256000_output	words	Wordiness vs RT		
+ngram_Space Probability_frequency-mean-post-merge_256000_output	words	Wordiness vs Acc	0.38785992043608086	0.0
+ngram_Space Probability_frequency-mean-post-merge_256000_output	nonwords	NumSplits vs RT		
+ngram_Space Probability_frequency-mean-post-merge_256000_output	nonwords	NumSplits vs Acc	0.17627535247278095	2.7695741492239252e-188
+ngram_Space Probability_frequency-mean-post-merge_256000_output	nonwords	Wordiness vs RT		
+ngram_Space Probability_frequency-mean-post-merge_256000_output	nonwords	Wordiness vs Acc	-0.13584174794314657	6.38641831477007e-112
+ngram_Space Probability_frequency-mean-post-merge_32000_output	words	NumSplits vs RT		
+ngram_Space Probability_frequency-mean-post-merge_32000_output	words	NumSplits vs Acc	-0.3574132580208179	0.0
+ngram_Space Probability_frequency-mean-post-merge_32000_output	words	Wordiness vs RT		
+ngram_Space Probability_frequency-mean-post-merge_32000_output	words	Wordiness vs Acc	0.3519457881555394	0.0
+ngram_Space Probability_frequency-mean-post-merge_32000_output	nonwords	NumSplits vs RT		
+ngram_Space Probability_frequency-mean-post-merge_32000_output	nonwords	NumSplits vs Acc	0.166423416890143	9.192777683841518e-168
+ngram_Space Probability_frequency-mean-post-merge_32000_output	nonwords	Wordiness vs RT		
+ngram_Space Probability_frequency-mean-post-merge_32000_output	nonwords	Wordiness vs Acc	-0.14075425365106994	4.2402934485984294e-120
+ngram_Space Probability_frequency-mean-post-merge_64000_output	words	NumSplits vs RT		
+ngram_Space Probability_frequency-mean-post-merge_64000_output	words	NumSplits vs Acc	-0.4306248607734436	0.0
+ngram_Space Probability_frequency-mean-post-merge_64000_output	words	Wordiness vs RT		
+ngram_Space Probability_frequency-mean-post-merge_64000_output	words	Wordiness vs Acc	0.39792483454916794	0.0
+ngram_Space Probability_frequency-mean-post-merge_64000_output	nonwords	NumSplits vs RT		
+ngram_Space Probability_frequency-mean-post-merge_64000_output	nonwords	NumSplits vs Acc	0.17936685045449227	5.5583446171025396e-195
+ngram_Space Probability_frequency-mean-post-merge_64000_output	nonwords	Wordiness vs RT		
+ngram_Space Probability_frequency-mean-post-merge_64000_output	nonwords	Wordiness vs Acc	-0.1451114121727077	1.3239972533487098e-127
+ngram_Space Probability_frequency-mean-post-merge_8064_output	words	NumSplits vs RT		
+ngram_Space Probability_frequency-mean-post-merge_8064_output	words	NumSplits vs Acc	-0.21357450375759043	1.255646665305962e-293
+ngram_Space Probability_frequency-mean-post-merge_8064_output	words	Wordiness vs RT		
+ngram_Space Probability_frequency-mean-post-merge_8064_output	words	Wordiness vs Acc	0.2478037416009727	0.0
+ngram_Space Probability_frequency-mean-post-merge_8064_output	nonwords	NumSplits vs RT		
+ngram_Space Probability_frequency-mean-post-merge_8064_output	nonwords	NumSplits vs Acc	0.1374070128648119	1.7068312005268235e-114
+ngram_Space Probability_frequency-mean-post-merge_8064_output	nonwords	Wordiness vs RT		
+ngram_Space Probability_frequency-mean-post-merge_8064_output	nonwords	Wordiness vs Acc	-0.12978433757266092	2.992586836250485e-102
+ngram_Space Probability_min-mean-post-merge_128000_output	words	NumSplits vs RT		
+ngram_Space Probability_min-mean-post-merge_128000_output	words	NumSplits vs Acc	0.05383479578283312	6.775495972809578e-20
+ngram_Space Probability_min-mean-post-merge_128000_output	words	Wordiness vs RT		
+ngram_Space Probability_min-mean-post-merge_128000_output	words	Wordiness vs Acc	0.016368850310412835	0.005527419208631044
+ngram_Space Probability_min-mean-post-merge_128000_output	nonwords	NumSplits vs RT		
+ngram_Space Probability_min-mean-post-merge_128000_output	nonwords	NumSplits vs Acc	0.020767551149879923	0.0006231915293325329
+ngram_Space Probability_min-mean-post-merge_128000_output	nonwords	Wordiness vs RT		
+ngram_Space Probability_min-mean-post-merge_128000_output	nonwords	Wordiness vs Acc	-0.044379103711184135	2.593540773476894e-13
+ngram_Space Probability_min-mean-post-merge_16000_output	words	NumSplits vs RT		
+ngram_Space Probability_min-mean-post-merge_16000_output	words	NumSplits vs Acc	0.05126631158255132	3.47008782466159e-18
+ngram_Space Probability_min-mean-post-merge_16000_output	words	Wordiness vs RT		
+ngram_Space Probability_min-mean-post-merge_16000_output	words	Wordiness vs Acc	0.045968922417038885	6.4163983934660925e-15
+ngram_Space Probability_min-mean-post-merge_16000_output	nonwords	NumSplits vs RT		
+ngram_Space Probability_min-mean-post-merge_16000_output	nonwords	NumSplits vs Acc	0.008748117506662722	0.14956607782966053
+ngram_Space Probability_min-mean-post-merge_16000_output	nonwords	Wordiness vs RT		
+ngram_Space Probability_min-mean-post-merge_16000_output	nonwords	Wordiness vs Acc	-0.05341572041882069	1.305974200992932e-18
+ngram_Space Probability_min-mean-post-merge_256000_output	words	NumSplits vs RT		
+ngram_Space Probability_min-mean-post-merge_256000_output	words	NumSplits vs Acc	-0.26018958891522603	0.0
+ngram_Space Probability_min-mean-post-merge_256000_output	words	Wordiness vs RT		
+ngram_Space Probability_min-mean-post-merge_256000_output	words	Wordiness vs Acc	0.3118299570164339	0.0
+ngram_Space Probability_min-mean-post-merge_256000_output	nonwords	NumSplits vs RT		
+ngram_Space Probability_min-mean-post-merge_256000_output	nonwords	NumSplits vs Acc	0.13789420786855333	2.6612762517510996e-115
+ngram_Space Probability_min-mean-post-merge_256000_output	nonwords	Wordiness vs RT		
+ngram_Space Probability_min-mean-post-merge_256000_output	nonwords	Wordiness vs Acc	-0.12024257056557958	6.16312203615546e-88
+ngram_Space Probability_min-mean-post-merge_32000_output	words	NumSplits vs RT		
+ngram_Space Probability_min-mean-post-merge_32000_output	words	NumSplits vs Acc	0.05823004197002911	5.1908587157705785e-23
+ngram_Space Probability_min-mean-post-merge_32000_output	words	Wordiness vs RT		
+ngram_Space Probability_min-mean-post-merge_32000_output	words	Wordiness vs Acc	0.015959026357884758	0.00682842910610325
+ngram_Space Probability_min-mean-post-merge_32000_output	nonwords	NumSplits vs RT		
+ngram_Space Probability_min-mean-post-merge_32000_output	nonwords	NumSplits vs Acc	0.0005103584102607511	0.9330015203101832
+ngram_Space Probability_min-mean-post-merge_32000_output	nonwords	Wordiness vs RT		
+ngram_Space Probability_min-mean-post-merge_32000_output	nonwords	Wordiness vs Acc	-0.024648120185552937	4.8906629179584195e-05
+ngram_Space Probability_min-mean-post-merge_64000_output	words	NumSplits vs RT		
+ngram_Space Probability_min-mean-post-merge_64000_output	words	NumSplits vs Acc	0.0787477058052486	9.318437463250034e-41
+ngram_Space Probability_min-mean-post-merge_64000_output	words	Wordiness vs RT		
+ngram_Space Probability_min-mean-post-merge_64000_output	words	Wordiness vs Acc	-0.01490626940370525	0.01151620690038491
+ngram_Space Probability_min-mean-post-merge_64000_output	nonwords	NumSplits vs RT		
+ngram_Space Probability_min-mean-post-merge_64000_output	nonwords	NumSplits vs Acc	-0.03236041802064525	9.714586032401969e-08
+ngram_Space Probability_min-mean-post-merge_64000_output	nonwords	Wordiness vs RT		
+ngram_Space Probability_min-mean-post-merge_64000_output	nonwords	Wordiness vs Acc	0.020229136006635194	0.0008603974479782519
+ngram_Space Probability_min-mean-post-merge_8064_output	words	NumSplits vs RT		
+ngram_Space Probability_min-mean-post-merge_8064_output	words	NumSplits vs Acc	0.05850490334626142	3.253801109955539e-23
+ngram_Space Probability_min-mean-post-merge_8064_output	words	Wordiness vs RT		
+ngram_Space Probability_min-mean-post-merge_8064_output	words	Wordiness vs Acc	0.0472664994033236	1.0945075785262465e-15
+ngram_Space Probability_min-mean-post-merge_8064_output	nonwords	NumSplits vs RT		
+ngram_Space Probability_min-mean-post-merge_8064_output	nonwords	NumSplits vs Acc	-0.012316736549836511	0.04246257852671145
+ngram_Space Probability_min-mean-post-merge_8064_output	nonwords	Wordiness vs RT		
+ngram_Space Probability_min-mean-post-merge_8064_output	nonwords	Wordiness vs Acc	-0.012207957358605595	0.0443215308083486
+ngram_Surprisal_frequency-mean-post-merge_128000_output	words	NumSplits vs RT		
+ngram_Surprisal_frequency-mean-post-merge_128000_output	words	NumSplits vs Acc	-0.2853614636799547	0.0
+ngram_Surprisal_frequency-mean-post-merge_128000_output	words	Wordiness vs RT		
+ngram_Surprisal_frequency-mean-post-merge_128000_output	words	Wordiness vs Acc	0.2991376377322279	0.0
+ngram_Surprisal_frequency-mean-post-merge_128000_output	nonwords	NumSplits vs RT		
+ngram_Surprisal_frequency-mean-post-merge_128000_output	nonwords	NumSplits vs Acc	0.1330863951209775	1.822490884123956e-107
+ngram_Surprisal_frequency-mean-post-merge_128000_output	nonwords	Wordiness vs RT		
+ngram_Surprisal_frequency-mean-post-merge_128000_output	nonwords	Wordiness vs Acc	-0.12554191477362753	9.5220734388405e-96
+ngram_Surprisal_frequency-mean-post-merge_16000_output	words	NumSplits vs RT		
+ngram_Surprisal_frequency-mean-post-merge_16000_output	words	NumSplits vs Acc	-0.17871213257476126	8.57387190716353e-205
+ngram_Surprisal_frequency-mean-post-merge_16000_output	words	Wordiness vs RT		
+ngram_Surprisal_frequency-mean-post-merge_16000_output	words	Wordiness vs Acc	0.22583776063391553	0.0
+ngram_Surprisal_frequency-mean-post-merge_16000_output	nonwords	NumSplits vs RT		
+ngram_Surprisal_frequency-mean-post-merge_16000_output	nonwords	NumSplits vs Acc	0.10869102681771364	4.199736049291804e-72
+ngram_Surprisal_frequency-mean-post-merge_16000_output	nonwords	Wordiness vs RT		
+ngram_Surprisal_frequency-mean-post-merge_16000_output	nonwords	Wordiness vs Acc	-0.11224231286667036	8.494523183742597e-77
+ngram_Surprisal_frequency-mean-post-merge_256000_output	words	NumSplits vs RT		
+ngram_Surprisal_frequency-mean-post-merge_256000_output	words	NumSplits vs Acc	-0.296949822357187	0.0
+ngram_Surprisal_frequency-mean-post-merge_256000_output	words	Wordiness vs RT		
+ngram_Surprisal_frequency-mean-post-merge_256000_output	words	Wordiness vs Acc	0.29992270883153227	0.0
+ngram_Surprisal_frequency-mean-post-merge_256000_output	nonwords	NumSplits vs RT		
+ngram_Surprisal_frequency-mean-post-merge_256000_output	nonwords	NumSplits vs Acc	0.13519750066848013	7.168915765943452e-111
+ngram_Surprisal_frequency-mean-post-merge_256000_output	nonwords	Wordiness vs RT		
+ngram_Surprisal_frequency-mean-post-merge_256000_output	nonwords	Wordiness vs Acc	-0.12766623865462928	5.628649316396254e-99
+ngram_Surprisal_frequency-mean-post-merge_32000_output	words	NumSplits vs RT		
+ngram_Surprisal_frequency-mean-post-merge_32000_output	words	NumSplits vs Acc	-0.2245253727604113	0.0
+ngram_Surprisal_frequency-mean-post-merge_32000_output	words	Wordiness vs RT		
+ngram_Surprisal_frequency-mean-post-merge_32000_output	words	Wordiness vs Acc	0.26222947498207133	0.0
+ngram_Surprisal_frequency-mean-post-merge_32000_output	nonwords	NumSplits vs RT		
+ngram_Surprisal_frequency-mean-post-merge_32000_output	nonwords	NumSplits vs Acc	0.12266039489528686	1.8572091975902687e-91
+ngram_Surprisal_frequency-mean-post-merge_32000_output	nonwords	Wordiness vs RT		
+ngram_Surprisal_frequency-mean-post-merge_32000_output	nonwords	Wordiness vs Acc	-0.12043073883372495	3.298826868736628e-88
+ngram_Surprisal_frequency-mean-post-merge_64000_output	words	NumSplits vs RT		
+ngram_Surprisal_frequency-mean-post-merge_64000_output	words	NumSplits vs Acc	-0.2666054734063945	0.0
+ngram_Surprisal_frequency-mean-post-merge_64000_output	words	Wordiness vs RT		
+ngram_Surprisal_frequency-mean-post-merge_64000_output	words	Wordiness vs Acc	0.29008379436520537	0.0
+ngram_Surprisal_frequency-mean-post-merge_64000_output	nonwords	NumSplits vs RT		
+ngram_Surprisal_frequency-mean-post-merge_64000_output	nonwords	NumSplits vs Acc	0.1332053562116766	1.1755797390123925e-107
+ngram_Surprisal_frequency-mean-post-merge_64000_output	nonwords	Wordiness vs RT		
+ngram_Surprisal_frequency-mean-post-merge_64000_output	nonwords	Wordiness vs Acc	-0.12531467166561827	2.0930329971670504e-95
+ngram_Surprisal_frequency-mean-post-merge_8064_output	words	NumSplits vs RT		
+ngram_Surprisal_frequency-mean-post-merge_8064_output	words	NumSplits vs Acc	-0.13792459880628868	5.229843705308331e-122
+ngram_Surprisal_frequency-mean-post-merge_8064_output	words	Wordiness vs RT		
+ngram_Surprisal_frequency-mean-post-merge_8064_output	words	Wordiness vs Acc	0.19378713673627865	4.0440306161530954e-241
+ngram_Surprisal_frequency-mean-post-merge_8064_output	nonwords	NumSplits vs RT		
+ngram_Surprisal_frequency-mean-post-merge_8064_output	nonwords	NumSplits vs Acc	0.10041598162738204	9.248992710680532e-62
+ngram_Surprisal_frequency-mean-post-merge_8064_output	nonwords	Wordiness vs RT		
+ngram_Surprisal_frequency-mean-post-merge_8064_output	nonwords	Wordiness vs Acc	-0.10721640574360071	3.366947671581382e-70
+ngram_Surprisal_min-mean-post-merge_128000_output	words	NumSplits vs RT		
+ngram_Surprisal_min-mean-post-merge_128000_output	words	NumSplits vs Acc	-0.3390668265017438	0.0
+ngram_Surprisal_min-mean-post-merge_128000_output	words	Wordiness vs RT		
+ngram_Surprisal_min-mean-post-merge_128000_output	words	Wordiness vs Acc	0.340780158094908	0.0
+ngram_Surprisal_min-mean-post-merge_128000_output	nonwords	NumSplits vs RT		
+ngram_Surprisal_min-mean-post-merge_128000_output	nonwords	NumSplits vs Acc	0.161605263051153	3.5188109475188147e-158
+ngram_Surprisal_min-mean-post-merge_128000_output	nonwords	Wordiness vs RT		
+ngram_Surprisal_min-mean-post-merge_128000_output	nonwords	Wordiness vs Acc	-0.13011925660207577	8.978786727818514e-103
+ngram_Surprisal_min-mean-post-merge_16000_output	words	NumSplits vs RT		
+ngram_Surprisal_min-mean-post-merge_16000_output	words	NumSplits vs Acc	-0.0720289851811139	2.3082000579527335e-34
+ngram_Surprisal_min-mean-post-merge_16000_output	words	Wordiness vs RT		
+ngram_Surprisal_min-mean-post-merge_16000_output	words	Wordiness vs Acc	0.14191017558856409	4.0711369672793474e-129
+ngram_Surprisal_min-mean-post-merge_16000_output	nonwords	NumSplits vs RT		
+ngram_Surprisal_min-mean-post-merge_16000_output	nonwords	NumSplits vs Acc	0.05854294378617372	4.830245907003358e-22
+ngram_Surprisal_min-mean-post-merge_16000_output	nonwords	Wordiness vs RT		
+ngram_Surprisal_min-mean-post-merge_16000_output	nonwords	Wordiness vs Acc	-0.08115839458945491	6.829910865309592e-41
+ngram_Surprisal_min-mean-post-merge_256000_output	words	NumSplits vs RT		
+ngram_Surprisal_min-mean-post-merge_256000_output	words	NumSplits vs Acc	-0.4501672588428782	0.0
+ngram_Surprisal_min-mean-post-merge_256000_output	words	Wordiness vs RT		
+ngram_Surprisal_min-mean-post-merge_256000_output	words	Wordiness vs Acc	0.3840340960804912	0.0
+ngram_Surprisal_min-mean-post-merge_256000_output	nonwords	NumSplits vs RT		
+ngram_Surprisal_min-mean-post-merge_256000_output	nonwords	NumSplits vs Acc	0.1677938640437197	1.5259264374067317e-170
+ngram_Surprisal_min-mean-post-merge_256000_output	nonwords	Wordiness vs RT		
+ngram_Surprisal_min-mean-post-merge_256000_output	nonwords	Wordiness vs Acc	-0.1296914899803788	4.175820623213841e-102
+ngram_Surprisal_min-mean-post-merge_32000_output	words	NumSplits vs RT		
+ngram_Surprisal_min-mean-post-merge_32000_output	words	NumSplits vs Acc	-0.1212341584631604	1.6606024761345167e-94
+ngram_Surprisal_min-mean-post-merge_32000_output	words	Wordiness vs RT		
+ngram_Surprisal_min-mean-post-merge_32000_output	words	Wordiness vs Acc	0.17259178645908535	6.14044799442382e-191
+ngram_Surprisal_min-mean-post-merge_32000_output	nonwords	NumSplits vs RT		
+ngram_Surprisal_min-mean-post-merge_32000_output	nonwords	NumSplits vs Acc	0.08614339564850601	7.243767824326759e-46
+ngram_Surprisal_min-mean-post-merge_32000_output	nonwords	Wordiness vs RT		
+ngram_Surprisal_min-mean-post-merge_32000_output	nonwords	Wordiness vs Acc	-0.09810781177939523	5.046557875338642e-59
+ngram_Surprisal_min-mean-post-merge_64000_output	words	NumSplits vs RT		
+ngram_Surprisal_min-mean-post-merge_64000_output	words	NumSplits vs Acc	-0.20012001255692557	2.5297553574598355e-257
+ngram_Surprisal_min-mean-post-merge_64000_output	words	Wordiness vs RT		
+ngram_Surprisal_min-mean-post-merge_64000_output	words	Wordiness vs Acc	0.2249036820192521	0.0
+ngram_Surprisal_min-mean-post-merge_64000_output	nonwords	NumSplits vs RT		
+ngram_Surprisal_min-mean-post-merge_64000_output	nonwords	NumSplits vs Acc	0.13260898785029945	1.0545187002624509e-106
+ngram_Surprisal_min-mean-post-merge_64000_output	nonwords	Wordiness vs RT		
+ngram_Surprisal_min-mean-post-merge_64000_output	nonwords	Wordiness vs Acc	-0.12364755533950528	6.46618754348818e-93
+ngram_Surprisal_min-mean-post-merge_8064_output	words	NumSplits vs RT		
+ngram_Surprisal_min-mean-post-merge_8064_output	words	NumSplits vs Acc	-0.04208268077387294	9.620208795385642e-13
+ngram_Surprisal_min-mean-post-merge_8064_output	words	Wordiness vs RT		
+ngram_Surprisal_min-mean-post-merge_8064_output	words	Wordiness vs Acc	0.12074192596790974	9.464238074148141e-94
+ngram_Surprisal_min-mean-post-merge_8064_output	nonwords	NumSplits vs RT		
+ngram_Surprisal_min-mean-post-merge_8064_output	nonwords	NumSplits vs Acc	0.04155769925221608	7.459055680492496e-12
+ngram_Surprisal_min-mean-post-merge_8064_output	nonwords	Wordiness vs RT		
+ngram_Surprisal_min-mean-post-merge_8064_output	nonwords	Wordiness vs Acc	-0.06726142753478272	1.3682355869598653e-28
