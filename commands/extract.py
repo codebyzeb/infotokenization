@@ -14,7 +14,7 @@ from rich import print
 from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedTokenizerFast
 
 from commands.configs import (
-    BYTE_DATA_SUBSET_FOLDER,
+    BYTE_DATA_NGRAM_EXTRACTION,
     BYTE_LLM_MODEL_FOLDER,
     BYTE_LLM_PREDICTION_DATA,
     BYTE_MODELS_REPO_ID,
@@ -257,7 +257,7 @@ def get_llm_predictions(
         with open(model_path, "rb") as f:
             model = pickle.load(f)
     elif model_type in ["fw57M"]:  # byte-level LLMs
-        MODEL_NAME = f"{BYTE_LLM_MODEL_FOLDER}/{model_type}"
+        MODEL_NAME = f"{BYTE_LLM_MODEL_FOLDER}/{model_type}-tied"
         PREDICTOR_CLASS = LLMPredictor
         print(f"⚙️ Downloading {model_type} model from {MODEL_REPO}/{MODEL_NAME}")
         model = AutoModelForCausalLM.from_pretrained(
@@ -274,8 +274,8 @@ def get_llm_predictions(
     tokenizer: PreTrainedTokenizerFast = AutoTokenizer.from_pretrained(TOKENIZER_REPO, subfolder=TOKENIZER_NAME)  # type: ignore
 
     # Download and process the dataset
-    print(f"⚙️ Downloading {BYTE_DATA_SUBSET_FOLDER} data from {DATA_REPO}")
-    dataset: Dataset = load_dataset(DATA_REPO, name=BYTE_DATA_SUBSET_FOLDER, split="train")  # type: ignore
+    print(f"⚙️ Downloading {BYTE_DATA_NGRAM_EXTRACTION} data from {DATA_REPO}")
+    dataset: Dataset = load_dataset(DATA_REPO, name=f"{BYTE_DATA_SUBSET_FOLDER}_1", split="train")  # type: ignore
 
     print(f"⚙️ Processing dataset with {model_type} model (this can take a while)...")
     predictor = PREDICTOR_CLASS(model, tokenizer)
@@ -302,7 +302,7 @@ def get_llm_predictions(
         max_shard_size="2GB",
         config_name=BYTE_LLM_PREDICTION_DATA,
         data_dir=str(TARGET_FOLDER),
-        split=model_type,
+        split="ngram" if model_type == "5-gram" else model_type,
     )
 
 

@@ -5,19 +5,17 @@ from pathlib import Path
 from typing import Annotated
 import os
 
-import dill as pickle
 import typer
-from datasets import Dataset, load_dataset
-from huggingface_hub import hf_hub_download
+from datasets import load_dataset
 from rich import print
 from transformers import AutoTokenizer
+from tokenizers import models
 import pandas as pd
 
 from huggingface_hub import list_repo_files
 
 from commands.configs import (
-    BYTE_DATA_SUBSET_FOLDER,
-    BYTE_LLM_PREDICTION_DATA,
+    BYTE_DATA_TOKENIZER_EVALUATION,
     BYTELEVEL_TOK_FOLDER,
     FINEWEBEDU_REPO_ID,
     HF_USERNAME,
@@ -29,13 +27,27 @@ app = typer.Typer()
 
 SPACE_TOKEN = 'Ġ'
 NEWLINE_TOKEN = 'Ċ'
-
+CONTINUATION_TOKEN = "##"
 
 class ExtractTokenizerStats:
 
     def __init__(self, byte_tokenizer, tokenizer):
         self.byte_tokenizer = byte_tokenizer
         self.tokenizer = tokenizer
+        if type(self.tokenizer.backend_tokenizer.model) is models.BPE:
+            self.tokenizer_type = "BPE"
+        elif type(self.tokenizer.backend_tokenizer.model) is models.WordPiece:
+            self.tokenizer_type = "WordPiece"
+        else:
+            raise ValueError(f"Unsupported tokenizer type: {type(self.tokenizer.backend_tokenizer.model)}")
+
+    def is_new_word(self, token):
+        if self.tokenizer_type == "BPE":
+            return SPACE_TOKEN in token or NEWLINE_TOKEN in token
+        elif self.tokenizer_type == "WordPiece":
+            return not token.startswith(CONTINUATION_TOKEN)
+        else:
+            raise ValueError(f"Unsupported tokenizer type: {self.tokenizer_type}")
 
     def __call__(self, batch):
         text = [self.byte_tokenizer.decode(inp) for inp in batch['input_ids']]
@@ -57,7 +69,7 @@ class ExtractTokenizerStats:
             num_full_words = 0
             num_continuation = 0
             for token in tokens:
-                if SPACE_TOKEN in token or NEWLINE_TOKEN in token:
+                if self.is_new_word(token):
                     if current_length == 0:
                         continue
                     total_words += 1
@@ -67,8 +79,9 @@ class ExtractTokenizerStats:
                     else:
                         num_continuation += 1
                     current_length = 0
-                if token != SPACE_TOKEN and token != NEWLINE_TOKEN:
-                    current_length += 1
+                if token == SPACE_TOKEN or token == NEWLINE_TOKEN:
+                    continue
+                current_length += 1
             if current_length > 0:
                 total_words += 1
                 continuation_lengths.append(current_length)
@@ -108,7 +121,7 @@ def get_tokenizer_statistics(
         df = None
 
     byte_tokenizer = AutoTokenizer.from_pretrained(TOKENIZER_REPO, subfolder=BYTELEVEL_TOK_FOLDER)
-    byte_data = load_dataset(DATA_REPO, BYTE_DATA_SUBSET_FOLDER, split="train")
+    byte_data = load_dataset(DATA_REPO, BYTE_DATA_TOKENIZER_EVALUATION, split="train")
 
     files = list_repo_files(TOKENIZER_REPO)
     folders = set()

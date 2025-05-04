@@ -4,6 +4,8 @@ import shutil
 from pathlib import Path
 from typing import Annotated
 
+from collections import defaultdict
+
 import pandas as pd
 import torch
 import typer
@@ -28,6 +30,7 @@ app = typer.Typer()
 ADD_PREFIX_SPACE = True  # Note that we will add a prefix_space to the pre_tokenizer
 PAD_TOKEN = "<|padding|>"
 EOS_TOKEN = "<|endoftext|>"
+UNK_TOKEN = "<|unk|>"
 DEFAULT_TOKENIZER_SIZES = [8_064, 16_000, 32_000, 64_000, 128_000, 256_000]
 
 # Create logger
@@ -316,9 +319,215 @@ class InfoTokenizerTrainer:
 
         return wrapped_tokenizer
 
+class ThresholdTokenizerTrainer:
+
+    def __init__(
+        self,
+        dataset: Dataset,
+        byte_tokenizer: PreTrainedTokenizerFast,
+        measure: str,
+        include_space: bool = False,
+        keep_intermediate_vocab: bool = True,
+        frequency_threshold: int = None,
+        logger: logging.Logger = None,
+    ) -> None:
+        """Class for training a threshold-based tokenizer using information measures derived from a byte-level LM.
+
+        Args:
+            dataset (Dataset): The dataset to use for training containing information measures for each token.
+            byte_tokenizer (ByteLevelBPETokenizer): The byte-level tokenizer to use for the initial vocabulary.
+            measure (str): The information measure to use ('Entropy', 'Surprisal', etc.).
+            include_space (bool, optional): Whether to include space in the vocabulary.
+            keep_intermediate_vocab (bool, optional): Whether to keep intermediate vocabularies during training.
+            frequency_threshold (int, optional): Frequency threshold for tokens to be included in the vocabulary.
+            logger (logging.Logger, optional): Logger for debugging and information.
+        """
+        if measure not in dataset.column_names:
+            raise ValueError(f"Measure '{measure}' not found in dataset columns.")
+
+        self.byte_tokenizer = byte_tokenizer
+        self.include_space = include_space
+        self.keep_intermediate_vocab = keep_intermediate_vocab
+        self.frequency_threshold = frequency_threshold
+        self.logger = logger if logger else get_logger("tokenizer")
+
+        self.eos_token_id = byte_tokenizer.eos_token_id
+        self.pad_token_id = byte_tokenizer.pad_token_id
+        self.space_token_id = byte_tokenizer.encode(' ')[0]
+        if self.eos_token_id is None:
+            raise ValueError("Byte tokenizer must have an EOS token.")
+        self.device = torch.device("cpu") # for some reason cpu is faster than cuda
+
+        # Convert byte vocab to be compatible with wordpiece
+        self.base_vocab = byte_tokenizer.get_vocab()
+        keys = list(self.base_vocab.keys())
+        for key in keys:
+            if key != PAD_TOKEN and key != EOS_TOKEN:
+                self.base_vocab['##' + key] = len(self.base_vocab)
+        self.base_vocab[UNK_TOKEN] = len(self.base_vocab)
+        self.vocab = self.base_vocab.copy()
+        self.segment_counts = defaultdict(int)
+
+        # Create ids and signal tensors for processing
+        self.logger.info("Creating ids and signal tensors...")
+        eos_token = torch.tensor([self.eos_token_id], dtype=torch.int64).to(self.device)
+        inf_value = torch.tensor([1e9], dtype=torch.float32).to(self.device)
+        self.ids = torch.cat(
+            [torch.cat([torch.tensor(x, dtype=torch.int64).to(self.device), eos_token]) for x in dataset["input_ids"]]
+        )
+        self.signal = torch.cat(
+            [torch.cat([torch.tensor(x, dtype=torch.float32).to(self.device), inf_value]) for x in dataset[measure]]
+        )
+        self.total_tokens = len(self.ids)
+        self.logger.info("Ids and signal tensors created.")
+
+        # Set all EOS, UNK and PAD tokens to large value to prevent them from being included within tokens
+        self.signal[self.ids == self.eos_token_id] = inf_value
+        self.signal[self.ids == byte_tokenizer.unk_token_id] = inf_value
+        self.signal[self.ids == byte_tokenizer.pad_token_id] = inf_value
+
+        if not self.include_space:
+            self.signal[self.ids == self.space_token_id] = inf_value
+
+        self.logger.info("Sorting signal tensor for threshold training...")
+
+        # Track the left and right boundaries of the segments
+        self.left_boundaries = torch.zeros_like(self.signal, dtype=torch.int64) - 1
+        self.right_boundaries = torch.zeros_like(self.signal, dtype=torch.int64) - 1
+        self.start_of_word = (self.ids == self.space_token_id).roll(1)
+        self.sorted_indices = torch.argsort(self.signal)
+        self.current_minimum_idx = 0
+
+        self.logger.info("Signal tensor sorted.")
+
+        self.stats = pd.DataFrame(columns=["num_moves", "vocab_size", "unique_segments", "threshold"])
+    
+    def update_vocab(self):
+        self.vocab = self.base_vocab.copy()
+        vocab_size = len(self.vocab)
+        discovered = sorted(self.segment_counts.items(), key=lambda x: x[1], reverse=True)
+        for token_ref, count in discovered:
+            if count < 20:
+                break
+            is_start_of_word, token_ids = token_ref
+            token = self.byte_tokenizer.decode(token_ids)
+            if not is_start_of_word:
+                token = "##" + token
+            if not token in self.vocab:
+                self.vocab[token] = vocab_size
+                vocab_size += 1
+
+    def train(self, final_vocab_size):
+        # Initialize tqdm progress bar
+        pbar = tqdm(total=final_vocab_size, desc="Building vocabulary", unit="items")
+
+        while self.current_minimum_idx < self.total_tokens:
+            min_idx = self.sorted_indices[self.current_minimum_idx]
+
+            # Update left and right boundaries
+            if min_idx > 0 and self.left_boundaries[min_idx-1] != -1:
+                left_boundary = self.left_boundaries[min_idx-1]
+            else:
+                left_boundary = min_idx
+            if min_idx < self.total_tokens - 1 and self.right_boundaries[min_idx+1] != -1:
+                right_boundary = self.right_boundaries[min_idx+1]
+            else:
+                right_boundary = min_idx
+            # Might only need left_boundaries[right_boundary] = left_boundary 
+            # and right_boundaries[left_boundary] = right_boundary 
+            # since we only every check the edges of segments 
+            self.left_boundaries[left_boundary:right_boundary+1] = left_boundary
+            self.right_boundaries[left_boundary:right_boundary+1] = right_boundary
+
+            # Create hashable subword
+            seg = self.ids[left_boundary:right_boundary + 1]
+            seg_tuple = tuple(seg.tolist())
+            is_start = self.ids[left_boundary-1] == self.space_token_id
+            token_ref = (bool(is_start), seg_tuple)
+
+            self.segment_counts[token_ref] += 1
+
+            if not self.keep_intermediate_vocab:
+                # Decrease counts for the tokens we merged with
+                if left_boundary != min_idx:
+                    prev_token_ref = (bool(is_start), tuple(self.ids[left_boundary:min_idx].tolist()))
+                    self.segment_counts[prev_token_ref] = max(0, self.segment_counts[prev_token_ref] - 1)
+                if right_boundary != min_idx:
+                    next_token_ref = (False, tuple(self.ids[min_idx + 1:right_boundary + 1].tolist()))
+                    self.segment_counts[next_token_ref] = max(0, self.segment_counts[next_token_ref] - 1)
+
+            if self.current_minimum_idx % 1000 == 0:
+                self.update_vocab()
+                vocab_size = len(self.vocab)
+                unique_segments = len(self.segment_counts)
+                self.stats = pd.concat(
+                    [self.stats,
+                     pd.DataFrame([[self.current_minimum_idx,
+                                    vocab_size,
+                                    unique_segments,
+                                    self.signal[self.sorted_indices[self.current_minimum_idx]].item()]],
+                                    columns=self.stats.columns)],
+                    ignore_index=True
+                )
+                # print(f"Step {i}: Vocab size: {vocab_size}, Unique segments: {unique_segments}, Threshold: {signal[sorted_indices[i]].item()}")
+                if pbar.n < vocab_size:
+                    pbar.update(vocab_size - pbar.n)
+                if vocab_size > final_vocab_size:
+                    self.logger.info(f"Final vocab size {vocab_size} exceeds target {final_vocab_size}.")
+                    self.logger.info("Filtering discovered tokens by frequency.")
+                    self.vocab = {k : v for k, v in self.vocab.items() if v < final_vocab_size}
+                    vocab_size = len(self.vocab)
+                if vocab_size >= final_vocab_size:
+                    self.logger.info(f"Final vocab size reached: {vocab_size}")
+                    return self.vocab
+            
+            self.current_minimum_idx += 1
+
+        self.logger.info("Reached end of signal tensor without reaching final vocab size.")
+        self.update_vocab()
+        self.logger.info("Final vocab size reached: {}".format(len(self.vocab)))
+        return self.vocab
+
+    def save_vocab_and_stats(self, path: Path):
+        """Saves the vocabulary to a JSON file and the stats to a CSV file.
+
+        Args:
+            path (Path): The path to save the vocabulary.
+        """
+        with open(path / "vocab.json", "w") as f:
+            json.dump(self.vocab, f)
+        self.logger.info(f"Vocabulary saved to {path / 'vocab.json'}")
+        self.stats.to_csv(path / "stats.csv", index=False)
+        self.logger.info(f"Stats saved to {path / 'stats.csv'}")
+                
+    def create_tokenizer(self) -> PreTrainedTokenizerFast:
+        """Create a WordPiece tokenizer using the trained vocabulary.
+        Returns:
+            PreTrainedTokenizerFast: The subword WordPiece-like tokenizer with custom vocabulary.
+        """
+        tokenizer = Tokenizer(models.WordPiece(vocab=self.vocab, unk_token=UNK_TOKEN))
+        tokenizer.normalizer = normalizers.Sequence([normalizers.NFD()])
+        if not self.include_space:
+            tokenizer.pre_tokenizer = pre_tokenizers.WhitespaceSplit()
+        else:
+            # Bogus pre-tokenizer to avoid splitting, treats all input as a single token initially
+            tokenizer.pre_tokenizer = pre_tokenizers.PreTokenizer()
+        tokenizer.post_processor = processors.ByteLevel(trim_offsets=True)
+        tokenizer.decoder = decoders.ByteLevel()
+
+        wrapped_tokenizer = PreTrainedTokenizerFast(
+            tokenizer_object=tokenizer,
+            pad_token=PAD_TOKEN,
+            unk_token=UNK_TOKEN,
+            bos_token=EOS_TOKEN,
+            eos_token=EOS_TOKEN,
+            add_prefix_space=ADD_PREFIX_SPACE,
+        )
+
+        return wrapped_tokenizer
 
 @app.command()
-def create_subwordlevel(
+def create_infotokenizer(
     model_type: Annotated[
         str,
         typer.Argument(
@@ -341,7 +550,7 @@ def create_subwordlevel(
     if measure == "SpaceProbability":
         measure = "Space Probability"
 
-    tokenizer_name = f"{model_type}_{measure}_{merge_type}"
+    tokenizer_name = merge_type if merge_type in ["frequency", "mutual-information"] else f"{model_type}_{measure}_{merge_type}"
     folder_path = Path(TOK_REPO_ID) / tokenizer_name
     api = HfApi()
 
@@ -399,6 +608,83 @@ def create_subwordlevel(
 
     shutil.rmtree(folder_path, ignore_errors=True)
 
+@app.command()
+def create_thresholdtokenizer(
+    model_type: Annotated[
+        str,
+        typer.Argument(
+            help=f"Type of model whose predictions are used to train subwords. Supported models: {SUPPORTED_MODELS}"
+        ),
+    ],
+    measure: Annotated[str, typer.Argument(help="Measure to use for training the subword tokenizer (e.g. Entropy)")],
+    merge_spaces: Annotated[bool, typer.Option(help="If True, allow multi-word merges.")] = False,
+    keep_intermediate_vocab: Annotated[bool, typer.Option(help="If True, keep intermediate vocabularies.")] = True,
+    frequency_threshold: Annotated[int, typer.Option(help="Frequency threshold for merging tokens.")] = 20,
+    num_training_rows: Annotated[int, typer.Option(help="Number of training rows to use.")] = 100000,
+    vocab_sizes: Annotated[
+        list[int], typer.Option(help="Vocabulary sizes for the tokenizer.")
+    ] = DEFAULT_TOKENIZER_SIZES,
+) -> None:
+    
+    if measure == "SpaceProbability":
+        measure = "Space Probability"
+
+    tokenizer_name = f"{model_type}_{measure}_threshold" + ("B" if not keep_intermediate_vocab else "")
+    folder_path = Path(TOK_REPO_ID) / tokenizer_name
+    api = HfApi()
+
+    logger.info(f"💡 Will save the tokenizers locally to to: {folder_path}")
+    folder_path.mkdir(parents=True, exist_ok=True)
+
+    # Sort vocab_sizes if not already sorted
+    vocab_sizes.sort()
+    logger.info(f"Using vocab sizes: {vocab_sizes}")
+
+    logger.info("⚙️ Loading bytelevel tokenizer and byte LLM data")
+    byte_tokenizer = AutoTokenizer.from_pretrained(f"{HF_USERNAME}/{TOK_REPO_ID}", subfolder=BYTELEVEL_TOK_FOLDER)
+    dataset = load_dataset(f"{HF_USERNAME}/{FINEWEBEDU_REPO_ID}", name=BYTE_LLM_PREDICTION_DATA, split=model_type)
+
+    # Limit the dataset to the specified number of rows
+    if num_training_rows > 0:
+        dataset = dataset.select(range(num_training_rows))
+    logger.info(f"Using {len(dataset)} rows for training")
+
+    logger.info("⚙️ Creating the InfoTokenizer Trainer")
+    trainer = ThresholdTokenizerTrainer(
+        dataset=dataset,
+        byte_tokenizer=byte_tokenizer,
+        measure=measure,
+        include_space=merge_spaces,
+        keep_intermediate_vocab=keep_intermediate_vocab,
+        frequency_threshold=frequency_threshold,
+        logger=logger,
+    )
+
+    logger.info("⚙️ Training the TresholdTokenizer")
+    for vocab_size in vocab_sizes:
+        folder_path_specific = folder_path / str(vocab_size)
+        folder_path_specific.mkdir(parents=True, exist_ok=True)
+        trainer.train(final_vocab_size=vocab_size)
+        tokenizer = trainer.create_tokenizer()
+        tokenizer.save_pretrained(str(folder_path_specific))
+        trainer.save_vocab_and_stats(folder_path_specific)
+        logger.info(f"✅ Successfully trained a tokenizer with a vocabulary size of {vocab_size}")
+
+        repo_id = f"{HF_USERNAME}/{folder_path.parent}"
+        logger.info(f"🆙 Uploading the tokenizer to {repo_id} on the HF Hub")
+
+        path_in_repo = folder_path.name + f"_{vocab_size}"
+        api.create_repo(repo_id, exist_ok=True)
+        api.upload_folder(
+            folder_path=folder_path_specific,
+            repo_id=repo_id,
+            path_in_repo=path_in_repo,
+            repo_type="model",
+            revision="main",
+        )
+        logger.info(f"✅ Successfully uploaded the tokenizer to {repo_id}")
+
+    shutil.rmtree(folder_path, ignore_errors=True)
 
 @app.command()
 def create_bytelevel() -> None:

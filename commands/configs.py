@@ -9,7 +9,9 @@ BYTELEVEL_TOK_FOLDER = "bytelevel"
 FINEWEBEDU_REPO_ID = "finewebedu-20B"
 COMMONCORPUS_REPO_ID = "common-corpus"
 BYTE_DATA_FOLDER = "bytelevel"
-BYTE_DATA_SUBSET_FOLDER = "bytelevel-subset"
+BYTE_DATA_NGRAM_TRAINING = "bytelevel-subset"
+BYTE_DATA_NGRAM_EXTRACTION = "bytelevel-subset_1"
+BYTE_DATA_TOKENIZER_EVALUATION = "bytelevel-subset_2"
 BYTE_LLM_PREDICTION_DATA = "bytelevel-llm-data"
 
 # ngram model repository

@@ -16,7 +16,7 @@ from transformers import AutoTokenizer  # type: ignore
 
 from commands.configs import (
     BYTE_DATA_FOLDER,
-    BYTE_DATA_SUBSET_FOLDER,
+    BYTE_DATA_NGRAM_TRAINING,
     COMMONCORPUS_REPO_ID,
     FINEWEBEDU_REPO_ID,
     HF_USERNAME,
@@ -203,7 +203,7 @@ def tokenize_and_subset_commoncorpus(
 @app.command()
 def commoncorpus_subset(languages : list[str] = LANGUAGES,
                         tokens_per_language: int = TOKENS_PER_LANGUAGE,
-                        subfolder: str = BYTE_DATA_SUBSET_FOLDER) -> None:
+                        subfolder: str = BYTE_DATA_NGRAM_TRAINING) -> None:
     DATA_REPO_ID = f"{HF_USERNAME}/{FINEWEBEDU_REPO_ID}"
 
     print(f"⚙️ Creating a {tokens_per_language}-token subset of Common Corpus located at \n\t{DATA_REPO_ID=}")
@@ -231,7 +231,7 @@ def commoncorpus_subset(languages : list[str] = LANGUAGES,
 
 @app.command()
 def finewebedu_subset(subset_size: int = NUM_TRAIN_ROWS,
-                      subfolder: str = BYTE_DATA_SUBSET_FOLDER,
+                      subfolder: str = BYTE_DATA_NGRAM_TRAINING,
                       shift_amount : int = 0) -> None:
     DATA_REPO_ID = f"{HF_USERNAME}/{FINEWEBEDU_REPO_ID}"
 

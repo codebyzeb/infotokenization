@@ -16,7 +16,7 @@ from rich import print
 from transformers import AutoTokenizer, PreTrainedTokenizerFast
 
 from commands.configs import (
-    BYTE_DATA_SUBSET_FOLDER,
+    BYTE_DATA_NGRAM_TRAINING,
     BYTE_MODELS_REPO_ID,
     BYTELEVEL_TOK_FOLDER,
     FINEWEBEDU_REPO_ID,
@@ -110,7 +110,7 @@ def train_ngram_model() -> None:
     tokenizer = AutoTokenizer.from_pretrained(
         pretrained_model_name_or_path=tokenizer_path, subfolder=BYTELEVEL_TOK_FOLDER
     )
-    dataset = load_dataset(data_path, name=BYTE_DATA_SUBSET_FOLDER, split="train", streaming=True)
+    dataset = load_dataset(data_path, name=BYTE_DATA_NGRAM_TRAINING, split="train", streaming=True)
     dataset = dataset.select_columns("input_ids")
 
     # Split into chunks for parallel processing
