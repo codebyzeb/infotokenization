@@ -189,6 +189,14 @@ class LLMPredictor(Predictor):
             with torch.no_grad():
                 ids = strided_ids[i]
                 logits = self.model(ids).logits.detach()
+
+                # Logits should predict the next token, so we need to shift them
+                # It's not a problem that this removes a token since below we
+                # are only using the last `stride` tokens
+                # (which are the ones we want to predict)
+                logits = logits[:, :-1, :]
+                ids = ids[:, 1:]
+
                 for batch_idx in range(self.batch_size):
                     stride_ids = ids[batch_idx][-self.stride :]
                     stride_logits = logits[batch_idx][-self.stride :]
@@ -275,7 +283,7 @@ def get_llm_predictions(
 
     # Download and process the dataset
     print(f"⚙️ Downloading {BYTE_DATA_NGRAM_EXTRACTION} data from {DATA_REPO}")
-    dataset: Dataset = load_dataset(DATA_REPO, name=f"{BYTE_DATA_SUBSET_FOLDER}_1", split="train")  # type: ignore
+    dataset: Dataset = load_dataset(DATA_REPO, name=BYTE_DATA_NGRAM_EXTRACTION, split="train")  # type: ignore
 
     print(f"⚙️ Processing dataset with {model_type} model (this can take a while)...")
     predictor = PREDICTOR_CLASS(model, tokenizer)

@@ -221,6 +221,7 @@ def commoncorpus_subset(languages : list[str] = LANGUAGES,
     # Load the dataset
     dataset = load_dataset(DATA_REPO_ID, name=BYTE_DATA_NGRAM_TRAINING, split="train", streaming=True)
     dataset = dataset.filter(filter_fn)  # type: ignore
+    dataset = list(dataset)
     dataset = Dataset.from_list(dataset)
 
     print(f"✅ Successfully created a subset of Common Corpus dataset shifted by {shift_amount} * {tokens_per_language} tokens per language")
