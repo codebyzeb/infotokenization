@@ -211,7 +211,7 @@ def commoncorpus_subset(languages : list[str] = LANGUAGES,
 
     language_token_counts = {lang : 0 for lang in languages}
     def filter_fn(example):
-        if (example["language"] not in languages or language_token_counts[example["language"]] >= tokens_per_language * shift_amount+1):
+        if (example["language"] not in languages or language_token_counts[example["language"]] >= tokens_per_language * (shift_amount+1)):
             return False
         language_token_counts[example["language"]] += len(example["input_ids"])
         # If we're shifting, we want to skip the first `shift_amount` * `tokens_per_language` tokens
@@ -220,7 +220,7 @@ def commoncorpus_subset(languages : list[str] = LANGUAGES,
         return True
 
     # Load the dataset
-    dataset = load_dataset(DATA_REPO_ID, name=BYTE_DATA_NGRAM_TRAINING, split="train", streaming=True)
+    dataset = load_dataset(DATA_REPO_ID, name=BYTE_DATA_FOLDER, split="train", streaming=True)
     dataset = dataset.filter(filter_fn)  # type: ignore
     dataset = list(dataset)
     dataset = Dataset.from_list(dataset)
