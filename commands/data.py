@@ -205,17 +205,18 @@ def commoncorpus_subset(languages : list[str] = LANGUAGES,
                         tokens_per_language: int = TOKENS_PER_LANGUAGE,
                         subfolder: str = BYTE_DATA_NGRAM_TRAINING,
                         shift_amount : int = 0) -> None:
-    DATA_REPO_ID = f"{HF_USERNAME}/{FINEWEBEDU_REPO_ID}"
+    DATA_REPO_ID = f"{HF_USERNAME}/{COMMONCORPUS_REPO_ID}"
 
     print(f"⚙️ Creating a {tokens_per_language}-token subset of Common Corpus located at \n\t{DATA_REPO_ID=}")
 
     language_token_counts = {lang : 0 for lang in languages}
     def filter_fn(example):
-        if (example["language"] not in languages
-            or language_token_counts[example["language"]] < tokens_per_language * (shift_amount)
-            or language_token_counts[example["language"]] >= tokens_per_language * shift_amount+1):
+        if (example["language"] not in languages or language_token_counts[example["language"]] >= tokens_per_language * shift_amount+1):
             return False
         language_token_counts[example["language"]] += len(example["input_ids"])
+        # If we're shifting, we want to skip the first `shift_amount` * `tokens_per_language` tokens
+        if language_token_counts[example["language"]] < tokens_per_language * (shift_amount):
+            return False
         return True
 
     # Load the dataset
