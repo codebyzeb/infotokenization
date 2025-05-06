@@ -203,30 +203,34 @@ def tokenize_and_subset_commoncorpus(
 @app.command()
 def commoncorpus_subset(languages : list[str] = LANGUAGES,
                         tokens_per_language: int = TOKENS_PER_LANGUAGE,
-                        subfolder: str = BYTE_DATA_NGRAM_TRAINING) -> None:
+                        subfolder: str = BYTE_DATA_NGRAM_TRAINING,
+                        shift_amount : int = 0) -> None:
     DATA_REPO_ID = f"{HF_USERNAME}/{FINEWEBEDU_REPO_ID}"
 
     print(f"⚙️ Creating a {tokens_per_language}-token subset of Common Corpus located at \n\t{DATA_REPO_ID=}")
 
     language_token_counts = {lang : 0 for lang in languages}
     def filter_fn(example):
-        if example["language"] not in languages or language_token_counts[example["language"]] >= tokens_per_language:
+        if (example["language"] not in languages
+            or language_token_counts[example["language"]] < tokens_per_language * (shift_amount)
+            or language_token_counts[example["language"]] >= tokens_per_language * shift_amount+1):
             return False
         language_token_counts[example["language"]] += len(example["input_ids"])
         return True
 
     # Load the dataset
-    dataset = load_dataset(DATA_REPO_ID, name=BYTE_DATA_FOLDER, split="train", streaming=True)
+    dataset = load_dataset(DATA_REPO_ID, name=BYTE_DATA_NGRAM_TRAINING, split="train", streaming=True)
     dataset = dataset.filter(filter_fn)  # type: ignore
     dataset = Dataset.from_list(dataset)
 
-    print(f"✅ Successfully created a subset of Common Corpus dataset")
+    print(f"✅ Successfully created a subset of Common Corpus dataset shifted by {shift_amount} * {tokens_per_language} tokens per language")
     print("Language token counts:")
     for language, count in language_token_counts.items():
         print(f"  - {language}: {count} tokens")
     print(f"🆙 Uploading the subset to {DATA_REPO_ID} on the HF Hub")
 
-    dataset.push_to_hub(repo_id=DATA_REPO_ID, set_default=False, config_name=subfolder, max_shard_size="2GB")
+    config_name = subfolder if shift_amount == 0 else f"{subfolder}_{shift_amount}"
+    dataset.push_to_hub(repo_id=DATA_REPO_ID, set_default=False, config_name=config_name, max_shard_size="2GB")
     print("✅ Successfully created and uploaded the subset of Common Corpus dataset")
 
 @app.command()
