@@ -17,6 +17,7 @@ from transformers import AutoTokenizer  # type: ignore
 from commands.configs import (
     BYTE_DATA_FOLDER,
     BYTE_DATA_NGRAM_TRAINING,
+    BYTE_DATA_NGRAM_EXTRACTION,
     COMMONCORPUS_REPO_ID,
     FINEWEBEDU_REPO_ID,
     HF_USERNAME,
@@ -278,6 +279,30 @@ def finewebedu_download(
     ds["train"] = ds["train"].select(range(num_train_rows))
 
     out_path = f"{local_dir}/{TARGET_REPO_ID.split('/')[1]}/{tok}"
+    print(f"Saving to {out_path}")
+    ds.save_to_disk(out_path, max_shard_size="2GB", num_proc=min(12, os.cpu_count()))  # type: ignore
+
+    print(f"Cleaning up {cache_dir} cache")
+    shutil.rmtree(cache_dir, ignore_errors=True)
+
+@app.command()
+def commoncorpus_download_bytelevel(
+    local_dir: str = "./data", cache_dir: str = ".cache",
+) -> None:
+    TARGET_REPO_ID = f"{HF_USERNAME}/{COMMONCORPUS_REPO_ID}"
+
+    # Make cache dir absolute path
+    cache_dir = os.path.abspath(cache_dir)
+    local_dir = os.path.abspath(local_dir)
+    print(f"Downloading subset from {TARGET_REPO_ID} and saving to {local_dir} (cache in {cache_dir})")
+    ds: DatasetDict = load_dataset(TARGET_REPO_ID, name=BYTE_DATA_NGRAM_TRAINING, cache_dir=cache_dir, num_proc=min(12, os.cpu_count()))  # type: ignore
+    ds_val : Dataset = load_dataset(TARGET_REPO_ID, name=BYTE_DATA_NGRAM_EXTRACTION, cache_dir=cache_dir, num_proc=min(12, os.cpu_count()))  # type: ignore
+
+    total_size = len(ds["train"])
+    print(f"Using '{BYTE_DATA_NGRAM_TRAINING}' subset for training and 1/100th of '{BYTE_DATA_NGRAM_EXTRACTION}' subset for validation")
+    ds["validation"] = ds_val["train"].select(range(len(ds_val["train"]) // 100))
+
+    out_path = f"{local_dir}/{TARGET_REPO_ID.split('/')[1]}/{BYTE_DATA_NGRAM_TRAINING}"
     print(f"Saving to {out_path}")
     ds.save_to_disk(out_path, max_shard_size="2GB", num_proc=min(12, os.cpu_count()))  # type: ignore
 
