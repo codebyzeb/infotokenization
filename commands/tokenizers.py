@@ -11,7 +11,7 @@ import torch
 import typer
 from datasets import Dataset, load_dataset
 from huggingface_hub import HfApi, logging as hf_logging
-from tokenizers import Tokenizer, decoders, models, normalizers, pre_tokenizers, processors, trainers
+from tokenizers import Tokenizer, decoders, models, normalizers, pre_tokenizers, processors, trainers, Regex
 from tqdm import tqdm
 from transformers import AutoTokenizer, PreTrainedTokenizerFast
 
@@ -22,7 +22,7 @@ from commands.configs import (
     HF_USERNAME,
     TOK_REPO_ID,
 )
-from commands.extract import SUPPORTED_MODELS
+from commands.extract import SUPPORTED_MODELS, SUPPORTED_CORPORA
 from src.utilities import get_logger
 
 app = typer.Typer()
@@ -358,15 +358,7 @@ class ThresholdTokenizerTrainer:
             raise ValueError("Byte tokenizer must have an EOS token.")
         self.device = torch.device("cpu") # for some reason cpu is faster than cuda
 
-        # Convert byte vocab to be compatible with wordpiece
-        self.base_vocab = byte_tokenizer.get_vocab()
-        keys = list(self.base_vocab.keys())
-        for key in keys:
-            if key != PAD_TOKEN and key != EOS_TOKEN:
-                self.base_vocab['##' + key] = len(self.base_vocab)
-        self.base_vocab[UNK_TOKEN] = len(self.base_vocab)
-        self.vocab = self.base_vocab.copy()
-        self.segment_counts = defaultdict(int)
+        self.build_initial_vocab()
 
         # Create ids and signal tensors for processing
         self.logger.info("Creating ids and signal tensors...")
@@ -402,6 +394,25 @@ class ThresholdTokenizerTrainer:
 
         self.stats = pd.DataFrame(columns=["num_moves", "vocab_size", "unique_segments", "threshold"])
     
+    def build_initial_vocab(self):
+        """ Convert byte vocab to be compatible with wordpiece """
+        byte_vocab = self.byte_tokenizer.get_vocab()
+        if self.include_space:
+            # Everything besides the space token is a continuation for this setup
+            # (the pre_tokenizer prepends a space to ensure that sentences can be tokenized)
+            space_token = self.byte_tokenizer.convert_ids_to_tokens(self.space_token_id)
+            self.base_vocab = {PAD_TOKEN : 0, EOS_TOKEN : 1, UNK_TOKEN : 2, space_token : 3}
+        else:
+            # Otherwise, any byte can start a word
+            self.base_vocab = byte_vocab
+        keys = list(byte_vocab.keys())
+        for key in keys:
+            if key != PAD_TOKEN and key != EOS_TOKEN and key != UNK_TOKEN:
+                self.base_vocab['##' + key] = len(self.base_vocab)
+        self.base_vocab[UNK_TOKEN] = len(self.base_vocab)
+        self.vocab = self.base_vocab.copy()
+        self.segment_counts = defaultdict(int)
+
     def update_vocab(self):
         self.vocab = self.base_vocab.copy()
         vocab_size = len(self.vocab)
@@ -411,7 +422,7 @@ class ThresholdTokenizerTrainer:
                 break
             is_start_of_word, token_ids = token_ref
             token = self.byte_tokenizer.decode(token_ids)
-            if not is_start_of_word:
+            if not is_start_of_word or self.include_space: # If merging spaces, every token is a continuation
                 token = "##" + token
             if not token in self.vocab:
                 self.vocab[token] = vocab_size
@@ -506,12 +517,17 @@ class ThresholdTokenizerTrainer:
             PreTrainedTokenizerFast: The subword WordPiece-like tokenizer with custom vocabulary.
         """
         tokenizer = Tokenizer(models.WordPiece(vocab=self.vocab, unk_token=UNK_TOKEN))
-        tokenizer.normalizer = normalizers.Sequence([normalizers.NFD()])
         if not self.include_space:
+            tokenizer.normalizer = normalizers.Sequence([normalizers.NFD()])
             tokenizer.pre_tokenizer = pre_tokenizers.WhitespaceSplit()
         else:
-            # Bogus pre-tokenizer to avoid splitting, treats all input as a single token initially
-            tokenizer.pre_tokenizer = pre_tokenizers.PreTokenizer()
+            # The vocabulary uses a special character for spaces so we must
+            # replace space tokens with the special character here.
+            tokenizer.normalizer = normalizers.Sequence([
+                normalizers.NFD(),
+            ])
+            # Bogus pre-tokenizer that splits nothing, treats all input as a single token initially
+            tokenizer.pre_tokenizer = pre_tokenizers.ByteLevel(add_prefix_space=True, use_regex=False)
         tokenizer.post_processor = processors.ByteLevel(trim_offsets=True)
         tokenizer.decoder = decoders.ByteLevel()
 
@@ -539,6 +555,12 @@ def create_infotokenizer(
         str,
         typer.Argument(help=f"Type of merge to perform. Supported options: {InfoTokenizerTrainer.VALID_MERGE_TYPES}"),
     ],
+    corpus: Annotated[
+        str,
+        typer.Argument(
+            help=f"Corpus to use for training the subword tokenizer. Supported corpora: {SUPPORTED_CORPORA}"
+        ),
+    ] = FINEWEBEDU_REPO_ID,
     merge_spaces: Annotated[bool, typer.Option(help="If True, allow multi-word merges.")] = False,
     frequency_threshold: Annotated[int, typer.Option(help="Frequency threshold for merging tokens.")] = 20,
     num_training_rows: Annotated[int, typer.Option(help="Number of training rows to use.")] = 100000,
@@ -617,6 +639,12 @@ def create_thresholdtokenizer(
         ),
     ],
     measure: Annotated[str, typer.Argument(help="Measure to use for training the subword tokenizer (e.g. Entropy)")],
+    corpus: Annotated[
+        str,
+        typer.Argument(
+            help=f"Corpus to use for training the subword tokenizer. Supported corpora: {SUPPORTED_CORPORA}"
+        ),
+    ] = FINEWEBEDU_REPO_ID,
     merge_spaces: Annotated[bool, typer.Option(help="If True, allow multi-word merges.")] = False,
     keep_intermediate_vocab: Annotated[bool, typer.Option(help="If True, keep intermediate vocabularies.")] = True,
     frequency_threshold: Annotated[int, typer.Option(help="Frequency threshold for merging tokens.")] = 20,
@@ -629,7 +657,7 @@ def create_thresholdtokenizer(
     if measure == "SpaceProbability":
         measure = "Space Probability"
 
-    tokenizer_name = f"{model_type}_{measure}_threshold" + ("B" if not keep_intermediate_vocab else "")
+    tokenizer_name = f"{model_type}_{measure}_threshold" + ("B" if not keep_intermediate_vocab else "") + ("X" if merge_spaces else "")
     folder_path = Path(TOK_REPO_ID) / tokenizer_name
     api = HfApi()
 
@@ -642,7 +670,7 @@ def create_thresholdtokenizer(
 
     logger.info("⚙️ Loading bytelevel tokenizer and byte LLM data")
     byte_tokenizer = AutoTokenizer.from_pretrained(f"{HF_USERNAME}/{TOK_REPO_ID}", subfolder=BYTELEVEL_TOK_FOLDER)
-    dataset = load_dataset(f"{HF_USERNAME}/{FINEWEBEDU_REPO_ID}", name=BYTE_LLM_PREDICTION_DATA, split=model_type)
+    dataset = load_dataset(f"{HF_USERNAME}/{corpus}", name=BYTE_LLM_PREDICTION_DATA, split=model_type)
 
     # Limit the dataset to the specified number of rows
     if num_training_rows > 0:

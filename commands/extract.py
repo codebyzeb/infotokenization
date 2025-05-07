@@ -314,7 +314,7 @@ def get_llm_predictions(
         max_shard_size="2GB",
         config_name=BYTE_LLM_PREDICTION_DATA,
         data_dir=str(TARGET_FOLDER),
-        split="ngram" if model_type == "5-gram" else model_type,
+        split=model_type.replace('-', ''),
     )
 
 
