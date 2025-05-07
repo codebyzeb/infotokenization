@@ -17,13 +17,13 @@
 #SBATCH --nodes=1
 #! How many (MPI) tasks will there be in total?
 #! Note probably this should not exceed the total number of GPUs in use.
-#SBATCH --ntasks-per-node=4
+#SBATCH --ntasks-per-node=1
 #! Specify the number of GPUs per node (between 1 and 4; must be 4 if nodes>1).
 #! Note that the job submission script will enforce no more than 32 cpus per GPU.
-#SBATCH --gres=gpu:4
+#SBATCH --gres=gpu:1
 
 #! How much wallclock time will be required?
-#SBATCH --time=15:00:00
+#SBATCH --time=18:00:00
 #! What types of email messages do you wish to receive?
 #SBATCH --mail-type=ALL
 #! Uncomment this to prevent the job from being requeued (e.g. if
@@ -84,7 +84,7 @@ echo "Current directory: `pwd`"
 nodes=( $( scontrol show hostnames $SLURM_JOB_NODELIST ) )
 nodes_array=($nodes)
 head_node=${nodes_array[0]}
-head_node_ip=$(srun --nodes=1 --ntasks=4 -w "$head_node" hostname --ip-address)
+head_node_ip=$(srun --nodes=1 --ntasks=1 -w "$head_node" hostname --ip-address)
 port_number=$(shuf -i 29510-49510 -n 1)
 
 echo Node IP: $head_node_ip
@@ -95,26 +95,23 @@ source .env # huggingface token
 uv sync
 
 model=fw57M-tied
-#tokenizer=frequency_64000
-#tokenizer=fw57M_Surprisal_frequency-mean-post-merge_64000
-#tokenizer=fw57M_Surprisal_min-mean-post-merge_64000
-tokenizer=fw57M_Entropy_threshold_32000
-#tokenizer=frequency_32000
+tokenizer=bytelevel
 
-# Avoid fragmentation
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
-
-uv run cli.py data finewebedu-download $tokenizer
 
 srun uv run scripts/train.py \
     +callbacks.grad_accum.scheduling="{0: 2}" \
+    data.batch_size=64 \
     data.eval_batch_size=64 \
     model=$model \
     pwd=/home/zg258/rds/hpc-work/infotokenization \
     torch_compile=true \
-    trainer.devices=4 \
+    trainer.devices=1 \
+    trainer.val_check_interval=1000 \
     data.num_workers=12 \
     hydra.run.dir=outputs/$model/$tokenizer \
     run_folder=. \
     resume_from_checkpoint=.checkpoints/last.ckpt \
-    tok_name=$tokenizer
+    tok_name=$tokenizer \
+    dataset=common-corpus \
+    evaluation.blimp=false
