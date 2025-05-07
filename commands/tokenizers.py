@@ -585,7 +585,7 @@ def create_infotokenizer(
 
     logger.info("⚙️ Loading bytelevel tokenizer and byte LLM data")
     byte_tokenizer = AutoTokenizer.from_pretrained(f"{HF_USERNAME}/{TOK_REPO_ID}", subfolder=BYTELEVEL_TOK_FOLDER)
-    dataset = load_dataset(f"{HF_USERNAME}/{FINEWEBEDU_REPO_ID}", name=BYTE_LLM_PREDICTION_DATA, split=model_type)
+    dataset = load_dataset(f"{HF_USERNAME}/{corpus}", name=BYTE_LLM_PREDICTION_DATA, split=model_type)
 
     # Limit the dataset to the specified number of rows
     if num_training_rows > 0:
