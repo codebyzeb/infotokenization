@@ -589,7 +589,11 @@ def create_infotokenizer(
 
     # Limit the dataset to the specified number of rows
     if num_training_rows > 0:
-        dataset = dataset.select(range(num_training_rows))
+        if num_training_rows > len(dataset):
+            logger.warning(f"Requested {num_training_rows} rows, but only {len(dataset)} available. Using all rows.")
+            num_training_rows = len(dataset)
+        else:
+            dataset = dataset.select(range(num_training_rows))
     logger.info(f"Using {len(dataset)} rows for training")
 
     logger.info("⚙️ Creating the InfoTokenizer Trainer")
@@ -674,7 +678,11 @@ def create_thresholdtokenizer(
 
     # Limit the dataset to the specified number of rows
     if num_training_rows > 0:
-        dataset = dataset.select(range(num_training_rows))
+        if num_training_rows > len(dataset):
+            logger.warning(f"Requested {num_training_rows} rows, but only {len(dataset)} available. Using all rows.")
+            num_training_rows = len(dataset)
+        else:
+            dataset = dataset.select(range(num_training_rows))
     logger.info(f"Using {len(dataset)} rows for training")
 
     logger.info("⚙️ Creating the InfoTokenizer Trainer")
