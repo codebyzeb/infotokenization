@@ -23,6 +23,7 @@ from commands.configs import (
     HF_USERNAME,
     NGRAM_MODEL_FOLDER,
     TOK_REPO_ID,
+    COMMONCORPUS_REPO_ID
 )
 
 CACHE_DIR = Path(".cache")
@@ -236,18 +237,21 @@ class LLMPredictor(Predictor):
         return examples
 
 
-SUPPORTED_MODELS = ["5-gram", "fw57M"]
-
+SUPPORTED_MODELS = ["5-gram", "fw57M", "fw57M-multi"]
+SUPPORTED_CORPORA = [FINEWEBEDU_REPO_ID, COMMONCORPUS_REPO_ID]
 
 @app.command()
 def get_llm_predictions(
     model_type: Annotated[
         str, typer.Argument(help=f"Type of model to use for predictions. Supported types: {SUPPORTED_MODELS}")
     ],
+    corpus: Annotated[
+        str, typer.Argument(help=f"Corpus to use for predictions. Supported corpora: {SUPPORTED_CORPORA}")
+    ] = FINEWEBEDU_REPO_ID,
 ) -> None:
     MODEL_REPO = f"{HF_USERNAME}/{BYTE_MODELS_REPO_ID}"
     TOKENIZER_REPO = f"{HF_USERNAME}/{TOK_REPO_ID}"
-    DATA_REPO = f"{HF_USERNAME}/{FINEWEBEDU_REPO_ID}"
+    DATA_REPO = f"{HF_USERNAME}/{corpus}"
     TOKENIZER_NAME = BYTELEVEL_TOK_FOLDER
     CACHE_FOLDER = CACHE_DIR / model_type
     MODEL_CACHE_PATH = CACHE_FOLDER / "model"

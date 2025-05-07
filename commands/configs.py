@@ -15,7 +15,7 @@ BYTE_DATA_TOKENIZER_EVALUATION = "bytelevel-subset_2"
 BYTE_LLM_PREDICTION_DATA = "bytelevel-llm-data"
 
 # ngram model repository
-BYTE_MODELS_REPO_ID = "byte-level-models"
+BYTE_MODELS_REPO_ID = "bytelevel-models"
 NGRAM_MODEL_FOLDER = "ngram"
 BYTE_LLM_MODEL_FOLDER = "llm"
 

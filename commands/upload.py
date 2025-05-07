@@ -52,7 +52,7 @@ def model(run_dir: Annotated[str, typer.Argument(help="Path to the directory of 
         ckpt = load_hf_from_pl(p)
         ckpt.push_to_hub(repo_id, revision=p.stem)  # type: ignore
 
-    tokenizer = AutoTokenizer.from_pretrained(f"{HF_USERNAME}/{TOK_REPO_ID}",subfolder=hparams['tok_name']")
+    tokenizer = AutoTokenizer.from_pretrained(f"{HF_USERNAME}/{TOK_REPO_ID}",subfolder=hparams['tok_name'])
     tokenizer.push_to_hub(repo_id, revision="main")
 
 

@@ -15,7 +15,8 @@ class SpeedMonitor(Callback):
 
     def epoch_end(self, trainer: Trainer, stage: str | RunningStage) -> None:
         setattr(self, f"{stage}_epoch_end_time", time.time())
-        runtime = getattr(self, f"{stage}_epoch_end_time") - getattr(self, f"{stage}_epoch_start_time")
+        prev_time = getattr(self, f"{stage}_epoch_start_time") if hasattr(self, f"{stage}_epoch_start_time") else 0
+        runtime = getattr(self, f"{stage}_epoch_end_time") - prev_time
         for pl_logger in trainer.loggers:
             pl_logger.log_metrics({f"{self.PREFIX}/{stage}_epoch (min)": runtime / 60}, step=trainer.global_step)
 
