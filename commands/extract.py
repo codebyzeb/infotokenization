@@ -268,7 +268,7 @@ def get_llm_predictions(
         )
         with open(model_path, "rb") as f:
             model = pickle.load(f)
-    elif model_type in ["fw57M"]:  # byte-level LLMs
+    elif model_type in ["fw57M", "fw57M-multi"]:  # byte-level LLMs
         MODEL_NAME = f"{BYTE_LLM_MODEL_FOLDER}/{model_type}-tied"
         PREDICTOR_CLASS = LLMPredictor
         print(f"⚙️ Downloading {model_type} model from {MODEL_REPO}/{MODEL_NAME}")
