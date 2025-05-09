@@ -18,6 +18,7 @@ from transformers import AutoTokenizer, PreTrainedTokenizerFast
 from commands.configs import (
     BYTE_LLM_PREDICTION_DATA,
     BYTELEVEL_TOK_FOLDER,
+    COMMONCORPUS_REPO_ID,
     FINEWEBEDU_REPO_ID,
     HF_USERNAME,
     TOK_REPO_ID,
@@ -326,6 +327,7 @@ class ThresholdTokenizerTrainer:
         dataset: Dataset,
         byte_tokenizer: PreTrainedTokenizerFast,
         measure: str,
+        do_merges: bool = False,
         include_space: bool = False,
         keep_intermediate_vocab: bool = True,
         frequency_threshold: int = None,
@@ -337,6 +339,7 @@ class ThresholdTokenizerTrainer:
             dataset (Dataset): The dataset to use for training containing information measures for each token.
             byte_tokenizer (ByteLevelBPETokenizer): The byte-level tokenizer to use for the initial vocabulary.
             measure (str): The information measure to use ('Entropy', 'Surprisal', etc.).
+            do_merges (bool, optional): Whether to perform merges (resulting in a BPE-like tokenizer) or not (WordPiece).
             include_space (bool, optional): Whether to include space in the vocabulary.
             keep_intermediate_vocab (bool, optional): Whether to keep intermediate vocabularies during training.
             frequency_threshold (int, optional): Frequency threshold for tokens to be included in the vocabulary.
@@ -346,6 +349,7 @@ class ThresholdTokenizerTrainer:
             raise ValueError(f"Measure '{measure}' not found in dataset columns.")
 
         self.byte_tokenizer = byte_tokenizer
+        self.do_merges = do_merges
         self.include_space = include_space
         self.keep_intermediate_vocab = keep_intermediate_vocab
         self.frequency_threshold = frequency_threshold
@@ -354,11 +358,14 @@ class ThresholdTokenizerTrainer:
         self.eos_token_id = byte_tokenizer.eos_token_id
         self.pad_token_id = byte_tokenizer.pad_token_id
         self.space_token_id = byte_tokenizer.encode(' ')[0]
+        self.space_token = byte_tokenizer.convert_ids_to_tokens(self.space_token_id)
         if self.eos_token_id is None:
             raise ValueError("Byte tokenizer must have an EOS token.")
         self.device = torch.device("cpu") # for some reason cpu is faster than cuda
 
         self.build_initial_vocab()
+        # Efficiently keep track of subwords without needing to decode at every step
+        self.segment_counts = defaultdict(int)
 
         # Create ids and signal tensors for processing
         self.logger.info("Creating ids and signal tensors...")
@@ -378,7 +385,7 @@ class ThresholdTokenizerTrainer:
         self.signal[self.ids == byte_tokenizer.unk_token_id] = inf_value
         self.signal[self.ids == byte_tokenizer.pad_token_id] = inf_value
 
-        if not self.include_space:
+        if not self.include_space and not self.do_merges:
             self.signal[self.ids == self.space_token_id] = inf_value
 
         self.logger.info("Sorting signal tensor for threshold training...")
@@ -395,38 +402,128 @@ class ThresholdTokenizerTrainer:
         self.stats = pd.DataFrame(columns=["num_moves", "vocab_size", "unique_segments", "threshold"])
     
     def build_initial_vocab(self):
-        """ Convert byte vocab to be compatible with wordpiece """
+        """ Convert byte vocab to be compatible with wordpiece or BPE tokenizers."""
         byte_vocab = self.byte_tokenizer.get_vocab()
-        if self.include_space:
-            # Everything besides the space token is a continuation for this setup
-            # (the pre_tokenizer prepends a space to ensure that sentences can be tokenized)
-            space_token = self.byte_tokenizer.convert_ids_to_tokens(self.space_token_id)
-            self.base_vocab = {PAD_TOKEN : 0, EOS_TOKEN : 1, UNK_TOKEN : 2, space_token : 3}
+        if self.do_merges:
+            self.base_vocab = byte_vocab.copy()
+            self.merges = []
+            self.vocab = byte_vocab.copy()
         else:
-            # Otherwise, any byte can start a word
-            self.base_vocab = byte_vocab
-        keys = list(byte_vocab.keys())
-        for key in keys:
-            if key != PAD_TOKEN and key != EOS_TOKEN and key != UNK_TOKEN:
-                self.base_vocab['##' + key] = len(self.base_vocab)
-        self.base_vocab[UNK_TOKEN] = len(self.base_vocab)
-        self.vocab = self.base_vocab.copy()
-        self.segment_counts = defaultdict(int)
+            if self.include_space:
+                # Everything besides the space token is a continuation for this setup
+                # (the pre_tokenizer prepends a space to ensure that sentences can be tokenized)
+                self.base_vocab = {PAD_TOKEN : 0, EOS_TOKEN : 1, self.space_token : 2}
+            else:
+                # Otherwise, any byte can start a word
+                self.base_vocab = byte_vocab
+            keys = list(byte_vocab.keys())
+            for key in keys:
+                if key != PAD_TOKEN and key != EOS_TOKEN and key != UNK_TOKEN:
+                    self.base_vocab['##' + key] = len(self.base_vocab)
+            self.base_vocab[UNK_TOKEN] = len(self.base_vocab)
+            self.vocab = self.base_vocab.copy()
 
     def update_vocab(self):
         self.vocab = self.base_vocab.copy()
+        self.merges = []
         vocab_size = len(self.vocab)
-        discovered = sorted(self.segment_counts.items(), key=lambda x: x[1], reverse=True)
+        discovered = sorted(self.segment_counts.items(), key=lambda x: x[1], reverse=True) if not self.do_merges else self.segment_counts.items()
         for token_ref, count in discovered:
-            if count < 20:
-                break
-            is_start_of_word, token_ids = token_ref
-            token = self.byte_tokenizer.decode(token_ids)
-            if not is_start_of_word or self.include_space: # If merging spaces, every token is a continuation
-                token = "##" + token
-            if not token in self.vocab:
-                self.vocab[token] = vocab_size
-                vocab_size += 1
+            if self.do_merges:
+                if count < self.frequency_threshold:
+                    continue
+                left_token, right_token, merged_token = token_ref
+                left_token = self.byte_tokenizer.decode(left_token)
+                right_token = self.byte_tokenizer.decode(right_token)
+                if left_token in self.vocab and right_token in self.vocab:
+                    merged_token = self.byte_tokenizer.decode(merged_token)
+                    assert merged_token == left_token + right_token
+                    if merged_token not in self.vocab:
+                        self.vocab[merged_token] = vocab_size
+                        self.merges.append((left_token, right_token))
+                        vocab_size += 1
+            else:
+                if count < self.frequency_threshold:
+                    break # Can break here because we've sorted the segments by frequency
+                is_start_of_word, token_ids = token_ref
+                token = self.byte_tokenizer.decode(token_ids)
+                if not is_start_of_word or self.include_space: # If merging spaces, every token is a continuation
+                    if self.include_space:
+                        # The space token needs to be replaced by the special byte marker
+                        token = token.replace(' ', self.space_token)
+                    token = "##" + token
+                if not token in self.vocab:
+                    self.vocab[token] = vocab_size
+                    vocab_size += 1
+
+    def wordpiece_step(self, min_idx):
+         # Update left and right boundaries
+        if min_idx > 0 and self.left_boundaries[min_idx-1] != -1:
+            left_boundary = self.left_boundaries[min_idx-1]
+        else:
+            left_boundary = min_idx
+        if min_idx < self.total_tokens - 1 and self.right_boundaries[min_idx+1] != -1:
+            right_boundary = self.right_boundaries[min_idx+1]
+        else:
+            right_boundary = min_idx
+        # Might only need left_boundaries[right_boundary] = left_boundary 
+        # and right_boundaries[left_boundary] = right_boundary 
+        # since we only every check the edges of segments 
+        self.left_boundaries[left_boundary:right_boundary+1] = left_boundary
+        self.right_boundaries[left_boundary:right_boundary+1] = right_boundary
+
+        # Create hashable subword
+        seg = self.ids[left_boundary:right_boundary + 1]
+        seg_tuple = tuple(seg.tolist())
+        is_start = self.ids[left_boundary-1] == self.space_token_id
+        token_ref = (bool(is_start), seg_tuple)
+
+        self.segment_counts[token_ref] += 1
+
+        if not self.keep_intermediate_vocab:
+            # Decrease counts for the tokens we merged with
+            if left_boundary != min_idx:
+                prev_token_ref = (bool(is_start), tuple(self.ids[left_boundary:min_idx].tolist()))
+                self.segment_counts[prev_token_ref] = max(0, self.segment_counts[prev_token_ref] - 1)
+            if right_boundary != min_idx:
+                next_token_ref = (False, tuple(self.ids[min_idx + 1:right_boundary + 1].tolist()))
+                self.segment_counts[next_token_ref] = max(0, self.segment_counts[next_token_ref] - 1)
+
+    def bpe_step(self, min_idx):
+         # Update left and right boundaries
+         # but don't merge to the left if the current token is a space
+         # and don't merge to the right if the right token is a space
+        left_seg = None
+        right_seg = None
+        if min_idx > 0 and self.left_boundaries[min_idx-1] != -1 and (not self.include_space and self.ids[min_idx] != self.space_token_id):
+            left_boundary = self.left_boundaries[min_idx-1]
+            left_seg = tuple(self.ids[left_boundary:min_idx].tolist())
+        else:
+            left_boundary = min_idx
+        if min_idx < self.total_tokens - 1 and self.right_boundaries[min_idx+1] != -1 and (not self.include_space and self.ids[min_idx+1] != self.space_token_id):
+            right_boundary = self.right_boundaries[min_idx+1]
+            right_seg = tuple(self.ids[min_idx+1:right_boundary+1].tolist())
+        else:
+            right_boundary = min_idx
+
+        self.left_boundaries[left_boundary:right_boundary+1] = left_boundary
+        self.right_boundaries[left_boundary:right_boundary+1] = right_boundary
+
+        # Create up to two merges
+        if right_seg:
+            single = tuple(self.ids[min_idx:min_idx+1].tolist())
+            right_merged_seg = tuple(self.ids[min_idx:right_boundary + 1].tolist())
+            merge = (single, right_seg, right_merged_seg)
+            self.segment_counts[merge] += 1
+            if left_seg:
+                full_seg = tuple(self.ids[left_boundary:right_boundary + 1].tolist())
+                merge = (left_seg, right_merged_seg, full_seg)
+                self.segment_counts[merge] += 1
+        elif left_seg:
+            single = tuple(self.ids[min_idx:min_idx+1].tolist())
+            left_merged_seg = tuple(self.ids[left_boundary:min_idx+1].tolist())
+            merge = (left_seg, single, left_merged_seg)
+            self.segment_counts[merge] += 1
 
     def train(self, final_vocab_size):
         # Initialize tqdm progress bar
@@ -434,38 +531,10 @@ class ThresholdTokenizerTrainer:
 
         while self.current_minimum_idx < self.total_tokens:
             min_idx = self.sorted_indices[self.current_minimum_idx]
-
-            # Update left and right boundaries
-            if min_idx > 0 and self.left_boundaries[min_idx-1] != -1:
-                left_boundary = self.left_boundaries[min_idx-1]
+            if self.do_merges:
+                self.bpe_step(min_idx)
             else:
-                left_boundary = min_idx
-            if min_idx < self.total_tokens - 1 and self.right_boundaries[min_idx+1] != -1:
-                right_boundary = self.right_boundaries[min_idx+1]
-            else:
-                right_boundary = min_idx
-            # Might only need left_boundaries[right_boundary] = left_boundary 
-            # and right_boundaries[left_boundary] = right_boundary 
-            # since we only every check the edges of segments 
-            self.left_boundaries[left_boundary:right_boundary+1] = left_boundary
-            self.right_boundaries[left_boundary:right_boundary+1] = right_boundary
-
-            # Create hashable subword
-            seg = self.ids[left_boundary:right_boundary + 1]
-            seg_tuple = tuple(seg.tolist())
-            is_start = self.ids[left_boundary-1] == self.space_token_id
-            token_ref = (bool(is_start), seg_tuple)
-
-            self.segment_counts[token_ref] += 1
-
-            if not self.keep_intermediate_vocab:
-                # Decrease counts for the tokens we merged with
-                if left_boundary != min_idx:
-                    prev_token_ref = (bool(is_start), tuple(self.ids[left_boundary:min_idx].tolist()))
-                    self.segment_counts[prev_token_ref] = max(0, self.segment_counts[prev_token_ref] - 1)
-                if right_boundary != min_idx:
-                    next_token_ref = (False, tuple(self.ids[min_idx + 1:right_boundary + 1].tolist()))
-                    self.segment_counts[next_token_ref] = max(0, self.segment_counts[next_token_ref] - 1)
+                self.wordpiece_step(min_idx)
 
             if self.current_minimum_idx % 1000 == 0:
                 self.update_vocab()
@@ -487,6 +556,9 @@ class ThresholdTokenizerTrainer:
                     self.logger.info(f"Final vocab size {vocab_size} exceeds target {final_vocab_size}.")
                     self.logger.info("Filtering discovered tokens by frequency.")
                     self.vocab = {k : v for k, v in self.vocab.items() if v < final_vocab_size}
+                    if self.do_merges:
+                        num_extra_tokens = vocab_size - final_vocab_size                        
+                        self.merges = self.merges[:-num_extra_tokens]
                     vocab_size = len(self.vocab)
                 if vocab_size >= final_vocab_size:
                     self.logger.info(f"Final vocab size reached: {vocab_size}")
@@ -508,33 +580,35 @@ class ThresholdTokenizerTrainer:
         with open(path / "vocab.json", "w") as f:
             json.dump(self.vocab, f)
         self.logger.info(f"Vocabulary saved to {path / 'vocab.json'}")
+
+        if self.do_merges:
+            with open(path / "merges.txt", "w") as f:
+                f.write("#version: 0.2\n")
+                for (left, right) in self.merges:
+                    f.write(f"{left} {right}\n")
+            self.logger.info(f"Merges saved to {path / 'merges.txt'}")
+
         self.stats.to_csv(path / "stats.csv", index=False)
         self.logger.info(f"Stats saved to {path / 'stats.csv'}")
                 
     def create_tokenizer(self) -> PreTrainedTokenizerFast:
-        """Create a WordPiece tokenizer using the trained vocabulary.
+        """Create a WordPiece or BPE tokenizer using the trained vocabulary.
         Returns:
-            PreTrainedTokenizerFast: The subword WordPiece-like tokenizer with custom vocabulary.
+            PreTrainedTokenizerFast: The subword WordPiece-like or BPE-like tokenizer with custom vocabulary.
         """
-        tokenizer = Tokenizer(models.WordPiece(vocab=self.vocab, unk_token=UNK_TOKEN))
-        if not self.include_space:
-            tokenizer.normalizer = normalizers.Sequence([normalizers.NFD()])
-            tokenizer.pre_tokenizer = pre_tokenizers.WhitespaceSplit()
+        if self.do_merges:
+            tokenizer = Tokenizer(models.BPE(vocab=self.vocab, merges=self.merges))
         else:
-            # The vocabulary uses a special character for spaces so we must
-            # replace space tokens with the special character here.
-            tokenizer.normalizer = normalizers.Sequence([
-                normalizers.NFD(),
-            ])
-            # Bogus pre-tokenizer that splits nothing, treats all input as a single token initially
-            tokenizer.pre_tokenizer = pre_tokenizers.ByteLevel(add_prefix_space=True, use_regex=False)
+            tokenizer = Tokenizer(models.WordPiece(vocab=self.vocab, unk_token=UNK_TOKEN))
+        tokenizer.normalizer = normalizers.Sequence([normalizers.NFD()])
+        tokenizer.pre_tokenizer = pre_tokenizers.ByteLevel(add_prefix_space=ADD_PREFIX_SPACE, use_regex=(not self.include_space))        
         tokenizer.post_processor = processors.ByteLevel(trim_offsets=True)
         tokenizer.decoder = decoders.ByteLevel()
 
         wrapped_tokenizer = PreTrainedTokenizerFast(
             tokenizer_object=tokenizer,
             pad_token=PAD_TOKEN,
-            unk_token=UNK_TOKEN,
+            unk_token=None if self.do_merges else UNK_TOKEN,
             bos_token=EOS_TOKEN,
             eos_token=EOS_TOKEN,
             add_prefix_space=ADD_PREFIX_SPACE,
@@ -573,6 +647,8 @@ def create_infotokenizer(
         measure = "Space Probability"
 
     tokenizer_name = merge_type if merge_type in ["frequency", "mutual-information"] else f"{model_type}_{measure}_{merge_type}"
+    if corpus == COMMONCORPUS_REPO_ID and merge_type in ["frequency", "mutual-information"]:
+        tokenizer_name += "multi"
     folder_path = Path(TOK_REPO_ID) / tokenizer_name
     api = HfApi()
 
@@ -649,6 +725,7 @@ def create_thresholdtokenizer(
             help=f"Corpus to use for training the subword tokenizer. Supported corpora: {SUPPORTED_CORPORA}"
         ),
     ] = FINEWEBEDU_REPO_ID,
+    bpe_like : Annotated[bool, typer.Option(help="If True, use BPE-like merges.")] = False,
     merge_spaces: Annotated[bool, typer.Option(help="If True, allow multi-word merges.")] = False,
     keep_intermediate_vocab: Annotated[bool, typer.Option(help="If True, keep intermediate vocabularies.")] = True,
     frequency_threshold: Annotated[int, typer.Option(help="Frequency threshold for merging tokens.")] = 20,
@@ -661,7 +738,7 @@ def create_thresholdtokenizer(
     if measure == "SpaceProbability":
         measure = "Space Probability"
 
-    tokenizer_name = f"{model_type}_{measure}_threshold" + ("B" if not keep_intermediate_vocab else "") + ("X" if merge_spaces else "")
+    tokenizer_name = f"{model_type}_{measure}_threshold" + ("B" if not keep_intermediate_vocab else "") + ("X" if merge_spaces else "") + ("M" if bpe_like else "")
     folder_path = Path(TOK_REPO_ID) / tokenizer_name
     api = HfApi()
 
@@ -690,6 +767,7 @@ def create_thresholdtokenizer(
         dataset=dataset,
         byte_tokenizer=byte_tokenizer,
         measure=measure,
+        do_merges=bpe_like,
         include_space=merge_spaces,
         keep_intermediate_vocab=keep_intermediate_vocab,
         frequency_threshold=frequency_threshold,

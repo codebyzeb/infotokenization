@@ -107,14 +107,16 @@ export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 uv run cli.py data finewebedu-download $tokenizer
 
 srun uv run scripts/train.py \
-    +callbacks.grad_accum.scheduling="{0: 2}" \
-    data.eval_batch_size=64 \
+    +callbacks.grad_accum.scheduling="{0: 16}" \
+    data.batch_size=8 \
+    data.eval_batch_size=16 \
     model=$model \
-    pwd=/home/zg258/rds/hpc-work/infotokenization \
+    pwd=/home/zg258/projects/infotokenization \
     torch_compile=true \
-    trainer.devices=4 \
+    trainer.devices=1 \
     data.num_workers=12 \
     hydra.run.dir=outputs/$model/$tokenizer \
     run_folder=. \
     resume_from_checkpoint=.checkpoints/last.ckpt \
-    tok_name=$tokenizer
+    tok_name=$tokenizer \
+    > "training_$tokenizer.log" 2>&1 &

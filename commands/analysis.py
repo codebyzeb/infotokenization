@@ -20,6 +20,8 @@ from commands.configs import (
     FINEWEBEDU_REPO_ID,
     HF_USERNAME,
     TOK_REPO_ID,
+    COMMONCORPUS_REPO_ID,
+    LANGUAGES,
 )
 
 app = typer.Typer()
@@ -59,6 +61,7 @@ class ExtractTokenizerStats:
         num_full_words_list = []
         num_continuation_words_list = []
         num_tokens_list = []
+        num_unk_list = []
 
         for tokens in tokenized[:]:
             tokens = tokens.tokens
@@ -68,7 +71,10 @@ class ExtractTokenizerStats:
             continuation_lengths = []
             num_full_words = 0
             num_continuation = 0
+            num_unk = 0
             for token in tokens:
+                if self.tokenizer_type == "WordPiece" and token == self.tokenizer.unk_token:
+                    num_unk += 1
                 if self.is_new_word(token):
                     if current_length == 0:
                         continue
@@ -94,16 +100,18 @@ class ExtractTokenizerStats:
             num_full_words_list.append(num_full_words)
             num_continuation_words_list.append(num_continuation)
             num_tokens_list.append(len(tokens))
+            num_unk_list.append(num_unk)
         batch['total_words'] = total_words_list
         batch['continuation_lengths'] = continuation_lengths_list
         batch['num_full_words'] = num_full_words_list
         batch['num_continuation_words'] = num_continuation_words_list
         batch['num_tokens'] = [len(tokens.tokens) for tokens in tokenized[:]]
+        batch['num_unk'] = num_unk_list
         return batch
 
 @app.command()
-def get_tokenizer_statistics(
-    output_path: Annotated[Path, typer.Option(help="Output path for the tokenizer statistics")] = Path('tokenizer_stats.csv'),
+def get_tokenizer_statistics_fineweb(
+    output_path: Annotated[Path, typer.Option(help="Output path for the tokenizer statistics")] = Path('tokenizer_stats_fineweb.csv'),
     recalculate_if_exists: Annotated[bool, typer.Option(help="Recalculate if the file already exists")] = False,
 ) -> None:
     TOKENIZER_REPO = f"{HF_USERNAME}/{TOK_REPO_ID}"
@@ -126,7 +134,11 @@ def get_tokenizer_statistics(
     files = list_repo_files(TOKENIZER_REPO)
     folders = set()
     for file in files:
-        folders.add(str(Path(file).parent))
+        folder = str(Path(file).parent)
+        if not 'multi' in folder:
+            folders.add(folder)
+        else:
+            print(f"💡 Skipping {folder} tokenizer as it is a multilingual tokenizer")
     folders.remove('.')
 
     if os.path.exists(output_path) and not recalculate_if_exists:
@@ -155,12 +167,14 @@ def get_tokenizer_statistics(
         total_tokens = 0
         total_continuation_words = 0
         split_length_distribution = defaultdict(int)
+        num_unk = 0
         for _, row in df_dataset.iterrows():
             for length in row['continuation_lengths']:
                 split_length_distribution[int(length)] += 1
             total_words += row['total_words']
             total_continuation_words += row['num_continuation_words']
             total_tokens += row['num_tokens']
+            num_unk += row['num_unk']
 
         fertility = sum([k * v for k, v in split_length_distribution.items()]) / total_words
         proportion_continued = total_continuation_words / total_words
@@ -172,13 +186,103 @@ def get_tokenizer_statistics(
             "total_split_words": total_continuation_words,
             "total_words": total_words,
             "total_tokens": total_tokens,
-            "split_lengths_distribution": str(split_length_distribution)
+            "split_lengths_distribution": str(split_length_distribution),
+            "num_unk" : num_unk,
         }
 
         if df is not None:
             df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
         else:
             df = pd.DataFrame([new_row])
+
+        df.to_csv(output_path, index=False)
+
+    print(f"✅ Successfully extracted tokenizer statistics from {TOKENIZER_REPO} directory")
+    print(f"✅ Successfully saved tokenizer statistics to {output_path}")
+
+@app.command()
+def get_tokenizer_statistics_common_corpus(
+    output_path: Annotated[Path, typer.Option(help="Output path for the tokenizer statistics")] = Path('tokenizer_stats_common.csv'),
+    recalculate_if_exists: Annotated[bool, typer.Option(help="Recalculate if the file already exists")] = False,
+) -> None:
+    TOKENIZER_REPO = f"{HF_USERNAME}/{TOK_REPO_ID}"
+    DATA_REPO = f"{HF_USERNAME}/{COMMONCORPUS_REPO_ID}"
+
+    print(f"⚙️ Starting analysis of tokenizers in {TOKENIZER_REPO} directory")
+
+    if os.path.exists(output_path) and not recalculate_if_exists:
+        print(f"💡 File {output_path} already exists, not recalculating existing entries.")
+        df = pd.read_csv(output_path)
+        print(f"✅ Successfully loaded tokenizer statistics from {output_path}")
+    else:
+        df = None
+
+    byte_tokenizer = AutoTokenizer.from_pretrained(TOKENIZER_REPO, subfolder=BYTELEVEL_TOK_FOLDER)
+    byte_data = load_dataset(DATA_REPO, BYTE_DATA_TOKENIZER_EVALUATION, split="train")
+    languages = LANGUAGES
+
+    files = list_repo_files(TOKENIZER_REPO)
+    folders = set()
+    for file in files:
+        if 'multi' in str(Path(file).parent):
+            folders.add(str(Path(file).parent))
+        else:
+            print(f"💡 Skipping {str(Path(file).parent)} tokenizer as it is a monolingual tokenizer")
+
+    if os.path.exists(output_path) and not recalculate_if_exists:
+        for tokenizer_name in df['tokenizer_name'].values:
+            if tokenizer_name in folders:
+                folders.remove(tokenizer_name)
+        if len(folders) == 0:
+            print(f"💡 No new tokenizers found in {TOKENIZER_REPO} directory, terminating.")
+            return
+        print(f"💡 Found {len(folders)} new tokenizers in {TOKENIZER_REPO} directory")
+    else:
+        print(f"💡 Found {len(folders)} tokenizers in {TOKENIZER_REPO} directory")
+
+    for folder in folders:
+        print(f"⚙️ Processing tokenizer: {folder}")
+        tokenizer = AutoTokenizer.from_pretrained(TOKENIZER_REPO, subfolder=folder)
+        processed_dataset = byte_data.map(
+            ExtractTokenizerStats(byte_tokenizer, tokenizer),
+            batched=True,
+            desc="Extracting statistics from dataset",
+            num_proc=min(20, os.cpu_count() - 1)
+        )
+
+        df_dataset = processed_dataset.to_pandas()
+        total_words = {lang : 0 for lang in languages}
+        total_tokens = {lang : 0 for lang in languages}
+        total_continuation_words = {lang : 0 for lang in languages}
+        split_length_distribution = {lang : defaultdict(int) for lang in languages}
+        num_unk = {lang : 0 for lang in languages}
+        for _, row in df_dataset.iterrows():
+            language = row['language']
+            for length in row['continuation_lengths']:
+                split_length_distribution[language][int(length)] += 1
+            total_words[language] += row['total_words']
+            total_continuation_words[language] += row['num_continuation_words']
+            total_tokens[language] += row['num_tokens']
+            num_unk[language] += row['num_unk']
+
+        fertility = {lang : sum([k * v for k, v in split_length_distribution[lang].items()]) / total_words[lang] for lang in languages}
+        proportion_continued = {lang : total_continuation_words[lang] / total_words[lang] for lang in languages}
+
+        new_row = {
+            "tokenizer_name": [folder] * len(languages),
+            "language": languages,
+            "fertility": [fertility[lang] for lang in languages],
+            "proportion_continued": [proportion_continued[lang] for lang in languages],
+            "total_split_words": [total_continuation_words[lang] for lang in languages],
+            "total_words": [total_words[lang] for lang in languages],
+            "total_tokens": [total_tokens[lang] for lang in languages],
+            "num_unk" : [num_unk[lang] for lang in languages],
+        }
+
+        if df is not None:
+            df = pd.concat([df, pd.DataFrame(new_row)], ignore_index=True)
+        else:
+            df = pd.DataFrame(new_row)
 
         df.to_csv(output_path, index=False)
 
