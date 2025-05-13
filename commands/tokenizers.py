@@ -409,17 +409,21 @@ class ThresholdTokenizerTrainer:
             self.merges = []
             self.vocab = byte_vocab.copy()
         else:
+            keys = list(byte_vocab.keys())
             if self.include_space:
                 # Everything besides the space token is a continuation for this setup
                 # (the pre_tokenizer prepends a space to ensure that sentences can be tokenized)
                 self.base_vocab = {PAD_TOKEN : 0, EOS_TOKEN : 1, self.space_token : 2}
+                for key in keys:
+                    if key != PAD_TOKEN and key != EOS_TOKEN and key != UNK_TOKEN:
+                        self.base_vocab['##' + key] = len(self.base_vocab)
             else:
-                # Otherwise, any byte can start a word
-                self.base_vocab = byte_vocab
-            keys = list(byte_vocab.keys())
-            for key in keys:
-                if key != PAD_TOKEN and key != EOS_TOKEN and key != UNK_TOKEN:
-                    self.base_vocab['##' + key] = len(self.base_vocab)
+                # Otherwise, any byte can start a word or be a continuation token
+                self.base_vocab = {PAD_TOKEN : 0, EOS_TOKEN : 1}
+                for key in keys:
+                    if key != PAD_TOKEN and key != EOS_TOKEN and key != UNK_TOKEN:
+                        self.base_vocab[self.space_token + key] = len(self.base_vocab)
+                        self.base_vocab['##' + key] = len(self.base_vocab)
             self.base_vocab[UNK_TOKEN] = len(self.base_vocab)
             self.vocab = self.base_vocab.copy()
 
@@ -447,11 +451,14 @@ class ThresholdTokenizerTrainer:
                     break # Can break here because we've sorted the segments by frequency
                 is_start_of_word, token_ids = token_ref
                 token = self.byte_tokenizer.decode(token_ids)
-                if not is_start_of_word or self.include_space: # If merging spaces, every token is a continuation
-                    if self.include_space:
-                        # The space token needs to be replaced by the special byte marker
-                        token = token.replace(' ', self.space_token)
+                if self.include_space:
+                    # If the token is a space, we need to replace it with the special byte marker
+                    token = token.replace(' ', self.space_token)
+                    token = "##" + token # If merging spaces, every token is a continuation
+                elif not is_start_of_word:
                     token = "##" + token
+                else:
+                    token = self.space_token + token
                 if not token in self.vocab:
                     self.vocab[token] = vocab_size
                     vocab_size += 1
