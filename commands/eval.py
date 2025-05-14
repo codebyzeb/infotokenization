@@ -10,7 +10,7 @@ from scipy.stats import pearsonr
 from tokenizers import models, normalizers, pre_tokenizers
 from tqdm import tqdm
 import typer
-
+from transformers import AutoTokenizer
 app = typer.Typer()
 
 
@@ -333,7 +333,7 @@ class Evaluator:
 
         # Static metrics
         corpus = self.corpus_to_list(self.TEST_CORPUS)
-        metrics.update(self.fertility_and_entropy(tokenizer, corpus))
+        metrics.update(self.tokenization_scorer(tokenizer, corpus))
 
         # Linguistic metrics
         metrics.update(self.combined_coverage(self.COMBINED_CORPUS, tokenizer, special))
@@ -357,7 +357,7 @@ class Evaluator:
         return corpus
 
     @staticmethod
-    def fertility_and_entropy(tokenizer, corpus: list[str]) -> dict[str, float]:
+    def tokenization_scorer(tokenizer, corpus: list[str]) -> dict[str, float]:
         """Calculate the fertility and entropy."""
         tokenized_corpus = [tokenizer.tokenize(text) for text in corpus]
 
@@ -518,3 +518,13 @@ def intrinsic(tok_list_path: str, tests_path: str = "./data/tok_eval", compare: 
 
     df = pd.DataFrame(results).round(4)
     df.to_csv("tok_eval_results.csv", index=False)
+
+
+@app.command()
+def intrinsic_other(tok_list_path: str) -> None:
+    with Path(tok_list_path).open() as tok_list_file:
+        toks = [AutoTokenizer.from_pretrained("InfoTokenizers/tokenizers", subfolder=tok) for tok in tok_list_file.readlines()]
+
+    
+
+
