@@ -80,7 +80,7 @@ def main(cfg: DictConfig) -> None:
         if isinstance(log, TensorBoardLogger):
             log.save_to_parquet("tb_logs.parquet")
 
-    if cfg.evaluation.blimp and torch.cuda.is_available() and torch.cuda.current_device() == 0: 
+    if cfg.evaluation.blimp and torch.cuda.is_available() and torch.cuda.current_device() == 0:
         start_time = time.perf_counter()
         logger.info("Evaluating BLiMP dataset...")
         # Temporarily save the model and tokenizer to a local directory
@@ -89,7 +89,7 @@ def main(cfg: DictConfig) -> None:
         tok.save_pretrained(".cache/eval_model")
         task_manager = lm_eval.tasks.TaskManager()
         out_path = "blimp_results.json"
-        logger.info(f"Running BLiMP tasks...")
+        logger.info("Running BLiMP tasks...")
         results = lm_eval.simple_evaluate(
             model="hf",
             model_args="pretrained=.cache/eval_model",

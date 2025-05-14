@@ -27,8 +27,30 @@ NUM_TRAIN_ROWS = 100_000
 
 # configs for splitting common corpus
 TOKENS_PER_LANGUAGE = 10_000_000
-LANGUAGES = ['English', 'Russian', 'Hungarian', 'Chinese', 'Indonesian',
-             'Finnish', 'Arabic', 'Turkish', 'Korean', 'Basque',
-             'Cebuano', 'French', 'Spanish', 'Czech', 'German',
-             'Japanese', 'Maltese', 'Hebrew', 'Hindi', 'Catalan',
-             'Italian', 'Polish', 'Portuguese', 'Danish', 'Vietnamese']
+LANGUAGES = [
+    "English",
+    "Russian",
+    "Hungarian",
+    "Chinese",
+    "Indonesian",
+    "Finnish",
+    "Arabic",
+    "Turkish",
+    "Korean",
+    "Basque",
+    "Cebuano",
+    "French",
+    "Spanish",
+    "Czech",
+    "German",
+    "Japanese",
+    "Maltese",
+    "Hebrew",
+    "Hindi",
+    "Catalan",
+    "Italian",
+    "Polish",
+    "Portuguese",
+    "Danish",
+    "Vietnamese",
+]

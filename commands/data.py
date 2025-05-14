@@ -16,8 +16,8 @@ from transformers import AutoTokenizer  # type: ignore
 
 from commands.configs import (
     BYTE_DATA_FOLDER,
-    BYTE_DATA_NGRAM_TRAINING,
     BYTE_DATA_NGRAM_EXTRACTION,
+    BYTE_DATA_NGRAM_TRAINING,
     COMMONCORPUS_REPO_ID,
     FINEWEBEDU_REPO_ID,
     HF_USERNAME,
@@ -32,9 +32,7 @@ app = typer.Typer()
 
 @app.command()
 def finewebedu_tokenize(
-    tok_path: str = f"{HF_USERNAME}/{TOK_REPO_ID}",
-    subfolder: str | None = BYTE_DATA_FOLDER,
-    batch_size: int = 1000
+    tok_path: str = f"{HF_USERNAME}/{TOK_REPO_ID}", subfolder: str | None = BYTE_DATA_FOLDER, batch_size: int = 1000
 ) -> None:
     SOURCE_REPO_ID = "hf://datasets/pietrolesci/finewebedu-20B/data"
     TARGET_REPO_ID = f"{HF_USERNAME}/{FINEWEBEDU_REPO_ID}"
@@ -106,13 +104,14 @@ def finewebedu_tokenize(
     print("Cleaning up ./.datatrove cache")
     shutil.rmtree(".datatrove", ignore_errors=True)
 
+
 @app.command()
 def tokenize_and_subset_commoncorpus(
-    tokens_per_language: int = TOKENS_PER_LANGUAGE * 4, # Overshoot a bit here just in case, we cut this down later
-    languages : list[str] = LANGUAGES,
+    tokens_per_language: int = TOKENS_PER_LANGUAGE * 4,  # Overshoot a bit here just in case, we cut this down later
+    languages: list[str] = LANGUAGES,
     tok_path: str = f"{HF_USERNAME}/{TOK_REPO_ID}",
     subfolder: str | None = BYTE_DATA_FOLDER,
-    batch_size: int = 1000
+    batch_size: int = 1000,
 ) -> None:
     SOURCE_REPO_ID = "/home/zg258/projects/infotokenization/data/common_corpus"
     TARGET_REPO_ID = f"{HF_USERNAME}/{COMMONCORPUS_REPO_ID}"
@@ -123,7 +122,7 @@ def tokenize_and_subset_commoncorpus(
         f"Tokenizing with {tok_path}{'/' + subfolder if subfolder else ''} and {batch_size=}"
     )
 
-    language_token_counts = {lang : 0 for lang in languages}
+    language_token_counts = {lang: 0 for lang in languages}
 
     class DocumentTokenizer(PipelineStep):
         def __init__(self, pretrained_model_name_or_path: str, subfolder: str | None, batch_size: int) -> None:
@@ -135,7 +134,11 @@ def tokenize_and_subset_commoncorpus(
             for batch in batched(data, self.batch_size):
                 with self.track_time(unit="batch"):
                     filtered_batch = [doc for doc in batch if doc.metadata.get("language", None) in languages]
-                    filtered_batch = [doc for doc in filtered_batch if language_token_counts[doc.metadata["language"]] < tokens_per_language]
+                    filtered_batch = [
+                        doc
+                        for doc in filtered_batch
+                        if language_token_counts[doc.metadata["language"]] < tokens_per_language
+                    ]
                     if not filtered_batch:
                         continue
                     docs = [doc.text for doc in filtered_batch]
@@ -165,9 +168,7 @@ def tokenize_and_subset_commoncorpus(
                 id_key="id",
                 # limit=100,
             ),
-            DocumentTokenizer(pretrained_model_name_or_path=tok_path,
-                              subfolder=subfolder,
-                              batch_size=batch_size),
+            DocumentTokenizer(pretrained_model_name_or_path=tok_path, subfolder=subfolder, batch_size=batch_size),
             ParquetWriter(
                 str(out_path),
                 output_filename="${rank}.parquet",
@@ -201,18 +202,24 @@ def tokenize_and_subset_commoncorpus(
     print("Cleaning up ./.datatrove cache")
     shutil.rmtree(".datatrove", ignore_errors=True)
 
+
 @app.command()
-def commoncorpus_subset(languages : list[str] = LANGUAGES,
-                        tokens_per_language: int = TOKENS_PER_LANGUAGE,
-                        subfolder: str = BYTE_DATA_NGRAM_TRAINING,
-                        shift_amount : int = 0) -> None:
+def commoncorpus_subset(
+    languages: list[str] = LANGUAGES,
+    tokens_per_language: int = TOKENS_PER_LANGUAGE,
+    subfolder: str = BYTE_DATA_NGRAM_TRAINING,
+    shift_amount: int = 0,
+) -> None:
     DATA_REPO_ID = f"{HF_USERNAME}/{COMMONCORPUS_REPO_ID}"
 
     print(f"⚙️ Creating a {tokens_per_language}-token subset of Common Corpus located at \n\t{DATA_REPO_ID=}")
 
-    language_token_counts = {lang : 0 for lang in languages}
+    language_token_counts = {lang: 0 for lang in languages}
+
     def filter_fn(example):
-        if (example["language"] not in languages or language_token_counts[example["language"]] >= tokens_per_language * (shift_amount+1)):
+        if example["language"] not in languages or language_token_counts[example["language"]] >= tokens_per_language * (
+            shift_amount + 1
+        ):
             return False
         language_token_counts[example["language"]] += len(example["input_ids"])
         # If we're shifting, we want to skip the first `shift_amount` * `tokens_per_language` tokens
@@ -226,7 +233,9 @@ def commoncorpus_subset(languages : list[str] = LANGUAGES,
     dataset = list(dataset)
     dataset = Dataset.from_list(dataset)
 
-    print(f"✅ Successfully created a subset of Common Corpus dataset shifted by {shift_amount} * {tokens_per_language} tokens per language")
+    print(
+        f"✅ Successfully created a subset of Common Corpus dataset shifted by {shift_amount} * {tokens_per_language} tokens per language"
+    )
     print("Language token counts:")
     for language, count in language_token_counts.items():
         print(f"  - {language}: {count} tokens")
@@ -236,10 +245,11 @@ def commoncorpus_subset(languages : list[str] = LANGUAGES,
     dataset.push_to_hub(repo_id=DATA_REPO_ID, set_default=False, config_name=config_name, max_shard_size="2GB")
     print("✅ Successfully created and uploaded the subset of Common Corpus dataset")
 
+
 @app.command()
-def finewebedu_subset(subset_size: int = NUM_TRAIN_ROWS,
-                      subfolder: str = BYTE_DATA_NGRAM_TRAINING,
-                      shift_amount : int = 0) -> None:
+def finewebedu_subset(
+    subset_size: int = NUM_TRAIN_ROWS, subfolder: str = BYTE_DATA_NGRAM_TRAINING, shift_amount: int = 0
+) -> None:
     DATA_REPO_ID = f"{HF_USERNAME}/{FINEWEBEDU_REPO_ID}"
 
     print(f"⚙️ Creating a {subset_size}-row subset of FineWebEdu located at \n\t{DATA_REPO_ID=}")
@@ -285,21 +295,26 @@ def finewebedu_download(
     print(f"Cleaning up {cache_dir} cache")
     shutil.rmtree(cache_dir, ignore_errors=True)
 
+
 @app.command()
-def commoncorpus_download_bytelevel(
-    local_dir: str = "./data", cache_dir: str = ".cache",
-) -> None:
+def commoncorpus_download_bytelevel(local_dir: str = "./data", cache_dir: str = ".cache") -> None:
     TARGET_REPO_ID = f"{HF_USERNAME}/{COMMONCORPUS_REPO_ID}"
 
     # Make cache dir absolute path
     cache_dir = os.path.abspath(cache_dir)
     local_dir = os.path.abspath(local_dir)
     print(f"Downloading subset from {TARGET_REPO_ID} and saving to {local_dir} (cache in {cache_dir})")
-    ds: DatasetDict = load_dataset(TARGET_REPO_ID, name=BYTE_DATA_NGRAM_TRAINING, cache_dir=cache_dir, num_proc=min(12, os.cpu_count()))  # type: ignore
-    ds_val : Dataset = load_dataset(TARGET_REPO_ID, name=BYTE_DATA_NGRAM_EXTRACTION, cache_dir=cache_dir, num_proc=min(12, os.cpu_count()))  # type: ignore
+    ds: DatasetDict = load_dataset(
+        TARGET_REPO_ID, name=BYTE_DATA_NGRAM_TRAINING, cache_dir=cache_dir, num_proc=min(12, os.cpu_count())
+    )  # type: ignore
+    ds_val: Dataset = load_dataset(
+        TARGET_REPO_ID, name=BYTE_DATA_NGRAM_EXTRACTION, cache_dir=cache_dir, num_proc=min(12, os.cpu_count())
+    )  # type: ignore
 
     total_size = len(ds["train"])
-    print(f"Using '{BYTE_DATA_NGRAM_TRAINING}' subset for training and 1/100th of '{BYTE_DATA_NGRAM_EXTRACTION}' subset for validation")
+    print(
+        f"Using '{BYTE_DATA_NGRAM_TRAINING}' subset for training and 1/100th of '{BYTE_DATA_NGRAM_EXTRACTION}' subset for validation"
+    )
     ds["validation"] = ds_val["train"].select(range(len(ds_val["train"]) // 100))
 
     out_path = f"{local_dir}/{TARGET_REPO_ID.split('/')[1]}/{BYTE_DATA_NGRAM_TRAINING}"

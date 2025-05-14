@@ -19,11 +19,11 @@ from commands.configs import (
     BYTE_LLM_PREDICTION_DATA,
     BYTE_MODELS_REPO_ID,
     BYTELEVEL_TOK_FOLDER,
+    COMMONCORPUS_REPO_ID,
     FINEWEBEDU_REPO_ID,
     HF_USERNAME,
     NGRAM_MODEL_FOLDER,
     TOK_REPO_ID,
-    COMMONCORPUS_REPO_ID
 )
 
 CACHE_DIR = Path(".cache")
@@ -240,6 +240,7 @@ class LLMPredictor(Predictor):
 SUPPORTED_MODELS = ["5-gram", "fw57M", "fw57M-multi"]
 SUPPORTED_CORPORA = [FINEWEBEDU_REPO_ID, COMMONCORPUS_REPO_ID]
 
+
 @app.command()
 def get_llm_predictions(
     model_type: Annotated[
@@ -314,7 +315,7 @@ def get_llm_predictions(
         max_shard_size="2GB",
         config_name=BYTE_LLM_PREDICTION_DATA,
         data_dir=str(TARGET_FOLDER),
-        split=model_type.replace('-', ''),
+        split=model_type.replace("-", ""),
     )
 
 
