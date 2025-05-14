@@ -1,17 +1,18 @@
 """Commands for extracting information from byte-level LLMs and saving them as datasets."""
 
 import os
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Annotated
 
+import numpy as np
 import pandas as pd
 import typer
-from datasets import load_dataset
+from datasets import Dataset, load_dataset
 from huggingface_hub import list_repo_files
 from rich import print
 from tokenizers import models
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer  # type: ignore
 
 from commands.configs import (
     BYTE_DATA_TOKENIZER_EVALUATION,
@@ -54,6 +55,7 @@ class ExtractTokenizerStats:
         text = [self.byte_tokenizer.decode(inp) for inp in batch["input_ids"]]
         tokenized = self.tokenizer(text)
         batch["total_words"] = [len(tokens.tokens) for tokens in tokenized[:]]
+        batch["frequency"] = Counter(tokens.tokens for tokens in tokenized[:])
 
         total_words_list = []
         continuation_lengths_list = []
@@ -131,7 +133,7 @@ def get_tokenizer_statistics_fineweb(
         df = None
 
     byte_tokenizer = AutoTokenizer.from_pretrained(TOKENIZER_REPO, subfolder=BYTELEVEL_TOK_FOLDER)
-    byte_data = load_dataset(DATA_REPO, BYTE_DATA_TOKENIZER_EVALUATION, split="train")
+    byte_data: Dataset = load_dataset(DATA_REPO, BYTE_DATA_TOKENIZER_EVALUATION, split="train")  # type: ignore
 
     files = list_repo_files(TOKENIZER_REPO)
     folders = set()
@@ -144,7 +146,7 @@ def get_tokenizer_statistics_fineweb(
     folders.remove(".")
 
     if os.path.exists(output_path) and not recalculate_if_exists:
-        for tokenizer_name in df["tokenizer_name"].values:
+        for tokenizer_name in df["tokenizer_name"].values:  # FIXME!
             if tokenizer_name in folders:
                 folders.remove(tokenizer_name)
         if len(folders) == 0:
@@ -161,15 +163,17 @@ def get_tokenizer_statistics_fineweb(
             ExtractTokenizerStats(byte_tokenizer, tokenizer),
             batched=True,
             desc="Extracting statistics from dataset",
-            num_proc=min(20, os.cpu_count() - 1),
+            num_proc=min(20, os.cpu_count() - 1),  # type: ignore
         )
 
-        df_dataset = processed_dataset.to_pandas()
+        df_dataset: pd.DataFrame = processed_dataset.to_pandas()  # type: ignore
         total_words = 0
         total_tokens = 0
         total_continuation_words = 0
         split_length_distribution = defaultdict(int)
         num_unk = 0
+        frequency = Counter()
+
         for _, row in df_dataset.iterrows():
             for length in row["continuation_lengths"]:
                 split_length_distribution[int(length)] += 1
@@ -177,9 +181,19 @@ def get_tokenizer_statistics_fineweb(
             total_continuation_words += row["num_continuation_words"]
             total_tokens += row["num_tokens"]
             num_unk += row["num_unk"]
+            frequency += row["frequency"]
 
         fertility = sum([k * v for k, v in split_length_distribution.items()]) / total_words
         proportion_continued = total_continuation_words / total_words
+
+        # Compute Renyi entropy
+        token_freq = list(frequency.values())
+        total_subwords = sum(token_freq)
+        token_probs = [freq / total_subwords for freq in token_freq]
+
+        power = 2.5
+        scale = 1 / (1 - power)
+        renyi = scale * np.log2(np.sum(np.array(token_probs) ** power)) / np.log2(len(token_probs))
 
         new_row = {
             "tokenizer_name": folder,
@@ -190,6 +204,7 @@ def get_tokenizer_statistics_fineweb(
             "total_tokens": total_tokens,
             "split_lengths_distribution": str(split_length_distribution),
             "num_unk": num_unk,
+            "renyi_efficiency": renyi,
         }
 
         df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True) if df is not None else pd.DataFrame([new_row])

@@ -2,7 +2,7 @@ import os
 
 import typer
 
-from commands import analysis, data, extract, ngram, tokenizers, upload, eval
+from commands import analysis, data, eval, extract, ngram, tokenizers, upload
 
 # Set this here in order to have effect
 # See: https://github.com/huggingface/transformers/issues/25305#issuecomment-1852931139

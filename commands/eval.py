@@ -1,16 +1,15 @@
 import copy
 import json
-import os
-import os.path
 from pathlib import Path
 
 import pandas as pd
 import tokenization_scorer
+import typer
 from scipy.stats import pearsonr
 from tokenizers import models, normalizers, pre_tokenizers
 from tqdm import tqdm
-import typer
 from transformers import AutoTokenizer
+
 app = typer.Typer()
 
 
@@ -313,7 +312,6 @@ class LongestSuffix:
 
 
 class Evaluator:
-
     def __init__(
         self,
         test_corpus_path: str | Path = "minipile.txt",
@@ -335,18 +333,18 @@ class Evaluator:
         corpus = self.corpus_to_list(self.TEST_CORPUS)
         metrics.update(self.tokenization_scorer(tokenizer, corpus))
 
-        # Linguistic metrics
-        metrics.update(self.combined_coverage(self.COMBINED_CORPUS, tokenizer, special))
+        # # Linguistic metrics
+        # metrics.update(self.combined_coverage(self.COMBINED_CORPUS, tokenizer, special))
 
-        # human metrics
-        metrics.update(self.eval_cog(self.COG_CORPUS, tokenizer))
+        # # human metrics
+        # metrics.update(self.eval_cog(self.COG_CORPUS, tokenizer))
 
-        # comparative measures
-        if compare and tokenizer == all_tokenizers[0]:
-            # This function doesn't return a value and just prints the segmentation difference once
-            # This counts on the fact that the vocabulary is the same for all tokenizers
-            # And that the default inference is the first tokenizer
-            self.segmentation_diff(all_tokenizers[0], all_tokenizers[1:], corpus, special)
+        # # comparative measures
+        # if compare and tokenizer == all_tokenizers[0]:
+        #     # This function doesn't return a value and just prints the segmentation difference once
+        #     # This counts on the fact that the vocabulary is the same for all tokenizers
+        #     # And that the default inference is the first tokenizer
+        #     self.segmentation_diff(all_tokenizers[0], all_tokenizers[1:], corpus, special)
 
         return metrics
 
@@ -366,14 +364,14 @@ class Evaluator:
 
         out = {}
         for metric in [
-            "renyi_efficiency",
-            "renyi_entropy",
-            "shannon_efficiency",
-            "shannon_entropy",
-            "bits",
-            "seq_len",
-            "doc_len",
-            "perc_freq",
+            "renyi_efficiency"
+            # "renyi_entropy",
+            # "shannon_efficiency",
+            # "shannon_entropy",
+            # "bits",
+            # "seq_len",
+            # "doc_len",
+            # "perc_freq",
         ]:
             kwargs = {"power": 2.5} if metric == "renyi_efficiency" else {}
             out[metric] = tokenization_scorer.score(tokenized_corpus, metric=metric, **kwargs)
@@ -392,7 +390,7 @@ class Evaluator:
             tps = fps = fns = length = count = 0
             for _, row in x.iterrows():
                 # Gold standard morphological segmentation from the dataset
-                gstandard = row["Gold_standard_segmentation"].tolist()
+                gstandard = row["Gold_standard_segmentation"]
                 gstandard[0] = "Ġ" + gstandard[0]
                 if "".join(gstandard) not in tokenizer.get_vocab():
                     if special == "##":
@@ -494,24 +492,25 @@ class Evaluator:
 def intrinsic(tok_list_path: str, tests_path: str = "./data/tok_eval", compare: bool = False) -> None:
     with Path(tok_list_path).open() as vocabs_file:
         paths = [Path(path.strip()) for path in vocabs_file.readlines()]
-    
+
     tokenizers = [BenchmarkTokenizer(path) for path in paths]
 
     p = Path(tests_path)
-    evaluator = Evaluator( p / "minipile.txt", p / "combined_resources.csv", p / "cog.csv")
+    evaluator = Evaluator(p / "minipile.txt", p / "combined_resources.csv", p / "cog.csv")
 
     results = []
     iterable = list(zip(paths, tokenizers, strict=True))
     for path, tokenizer in tqdm(iterable, desc="Evaluating Tokenizers"):
-        special = "##" if any(path.name.startswith(prefix) for prefix in ["wordpiece", "flota_wordpiece", "suffix_wordpiece"]) else "Ġ"
-        
+        special = (
+            "##"
+            if any(path.name.startswith(prefix) for prefix in ["wordpiece", "flota_wordpiece", "suffix_wordpiece"])
+            else "Ġ"
+        )
+
         result = {
             "tokenizer": path.name.rstrip(".json"),
             **evaluator.eval_tokenizer(
-                tokenizer=tokenizer,
-                special=special,
-                all_tokenizers=tokenizers,
-                compare=compare,
+                tokenizer=tokenizer, special=special, all_tokenizers=tokenizers, compare=compare
             ),
         }
         results.append(result)
@@ -523,8 +522,7 @@ def intrinsic(tok_list_path: str, tests_path: str = "./data/tok_eval", compare: 
 @app.command()
 def intrinsic_other(tok_list_path: str) -> None:
     with Path(tok_list_path).open() as tok_list_file:
-        toks = [AutoTokenizer.from_pretrained("InfoTokenizers/tokenizers", subfolder=tok) for tok in tok_list_file.readlines()]
-
-    
-
-
+        toks = [
+            AutoTokenizer.from_pretrained("InfoTokenizers/tokenizers", subfolder=tok)
+            for tok in tok_list_file.readlines()
+        ]
