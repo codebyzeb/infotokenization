@@ -303,7 +303,7 @@ class InfoTokenizerTrainer:
             PreTrainedTokenizerFast: The subword BPE-like tokenizer with custom merges.
         """
         tokenizer = Tokenizer(models.BPE(vocab=self.get_vocab(), merges=self.get_merges()))
-        tokenizer.normalizer = normalizers.Sequence([normalizers.NFD()])  # type: ignore
+        # tokenizer.normalizer = normalizers.Sequence([normalizers.NFD()])  # type: ignore
         tokenizer.pre_tokenizer = pre_tokenizers.ByteLevel(add_prefix_space=ADD_PREFIX_SPACE, use_regex=True)  # type: ignore
         tokenizer.post_processor = processors.ByteLevel(trim_offsets=True)  # type: ignore
         tokenizer.decoder = decoders.ByteLevel()  # type: ignore
@@ -421,7 +421,11 @@ class ThresholdTokenizerTrainer:
                 self.base_vocab = {PAD_TOKEN: 0, EOS_TOKEN: 1}
                 for key in keys:
                     if key != PAD_TOKEN and key != EOS_TOKEN and key != UNK_TOKEN:
-                        self.base_vocab[self.space_token + key] = len(self.base_vocab)
+                        # Check if the key is a letter, if so it probably appears
+                        # at the start of a word, so we add it to the vocab with the space token
+                        if key.isalpha():
+                            self.base_vocab[self.space_token + key] = len(self.base_vocab)
+                        self.base_vocab[key] = len(self.base_vocab)
                         self.base_vocab["##" + key] = len(self.base_vocab)
             self.base_vocab[UNK_TOKEN] = len(self.base_vocab)
             self.vocab = self.base_vocab.copy()
@@ -626,7 +630,7 @@ class ThresholdTokenizerTrainer:
             tokenizer = Tokenizer(models.BPE(vocab=self.vocab, merges=self.merges))
         else:
             tokenizer = Tokenizer(models.WordPiece(vocab=self.vocab, unk_token=UNK_TOKEN))  # type: ignore
-        tokenizer.normalizer = normalizers.Sequence([normalizers.NFD()])
+        # tokenizer.normalizer = normalizers.Sequence([normalizers.NFD()])
         tokenizer.pre_tokenizer = pre_tokenizers.ByteLevel(
             add_prefix_space=ADD_PREFIX_SPACE, use_regex=(not self.include_space)
         )
@@ -845,7 +849,6 @@ def create_bytelevel() -> None:
 
     logger.info("⚙️ Creating the ByteLevel tokenizer")
     tokenizer = Tokenizer(models.BPE())
-    tokenizer.normalizer = normalizers.Sequence([normalizers.NFD()])
     tokenizer.pre_tokenizer = pre_tokenizers.ByteLevel(add_prefix_space=ADD_PREFIX_SPACE, use_regex=True)
     tokenizer.post_processor = processors.ByteLevel(trim_offsets=True)
     tokenizer.decoder = decoders.ByteLevel()

@@ -211,6 +211,7 @@ def commoncorpus_subset(
     shift_amount: int = 0,
 ) -> None:
     DATA_REPO_ID = f"{HF_USERNAME}/{COMMONCORPUS_REPO_ID}"
+    byte_retokenizer = AutoTokenizer.from_pretrained(f"{HF_USERNAME}/{TOK_REPO_ID}", subfolder=BYTE_DATA_FOLDER+'2')
 
     print(f"⚙️ Creating a {tokens_per_language}-token subset of Common Corpus located at \n\t{DATA_REPO_ID=}")
 
@@ -226,12 +227,20 @@ def commoncorpus_subset(
         if language_token_counts[example["language"]] < tokens_per_language * (shift_amount):
             return False
         return True
+    
+    def retokenize_fn(batch):
+        text = batch["text"]
+        tokenized = byte_retokenizer(text)["input_ids"]
+        batch["input_ids"] = tokenized
+        batch["num_tokens"] = len(tokenized)
+        return batch
 
     # Load the dataset
     dataset = load_dataset(DATA_REPO_ID, name=BYTE_DATA_FOLDER, split="train", streaming=True)
     dataset = dataset.filter(filter_fn)  # type: ignore
     dataset = list(dataset)
     dataset = Dataset.from_list(dataset)
+    dataset = dataset.map(retokenize_fn)  # type: ignore
 
     print(
         f"✅ Successfully created a subset of Common Corpus dataset shifted by {shift_amount} * {tokens_per_language} tokens per language"
@@ -316,6 +325,10 @@ def commoncorpus_download_bytelevel(local_dir: str = "./data", cache_dir: str = 
         f"Using '{BYTE_DATA_NGRAM_TRAINING}' subset for training and 1/100th of '{BYTE_DATA_NGRAM_EXTRACTION}' subset for validation"
     )
     ds["validation"] = ds_val["train"].select(range(len(ds_val["train"]) // 100))
+    ds["train"] = ds["train"].remove_columns(["text"])
+    ds["validation"] = ds["validation"].remove_columns(["text"])
+    ds["train"] = ds["train"].remove_columns(["language"])
+    ds["validation"] = ds["validation"].remove_columns(["language"])
 
     out_path = f"{local_dir}/{TARGET_REPO_ID.split('/')[1]}/{BYTE_DATA_NGRAM_TRAINING}"
     print(f"Saving to {out_path}")

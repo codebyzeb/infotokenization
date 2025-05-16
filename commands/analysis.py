@@ -54,8 +54,8 @@ class ExtractTokenizerStats:
     def __call__(self, batch):
         text = [self.byte_tokenizer.decode(inp) for inp in batch["input_ids"]]
         tokenized = self.tokenizer(text)
-        batch["total_words"] = [len(tokens.tokens) for tokens in tokenized[:]]
-        batch["frequency"] = Counter(tokens.tokens for tokens in tokenized[:])
+        batch["token_ids"] = [tokens.ids for tokens in tokenized[:]]
+        batch["num_tokens"] = [len(tokens.tokens) for tokens in tokenized[:]]
 
         total_words_list = []
         continuation_lengths_list = []
@@ -106,7 +106,6 @@ class ExtractTokenizerStats:
         batch["continuation_lengths"] = continuation_lengths_list
         batch["num_full_words"] = num_full_words_list
         batch["num_continuation_words"] = num_continuation_words_list
-        batch["num_tokens"] = [len(tokens.tokens) for tokens in tokenized[:]]
         batch["num_unk"] = num_unk_list
         return batch
 
@@ -181,7 +180,7 @@ def get_tokenizer_statistics_fineweb(
             total_continuation_words += row["num_continuation_words"]
             total_tokens += row["num_tokens"]
             num_unk += row["num_unk"]
-            frequency += row["frequency"]
+            frequency += Counter(row["token_ids"])
 
         fertility = sum([k * v for k, v in split_length_distribution.items()]) / total_words
         proportion_continued = total_continuation_words / total_words
