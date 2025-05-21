@@ -306,8 +306,8 @@ def finewebedu_download(
 
 
 @app.command()
-def commoncorpus_download_bytelevel(local_dir: str = "./data", cache_dir: str = ".cache") -> None:
-    TARGET_REPO_ID = f"{HF_USERNAME}/{COMMONCORPUS_REPO_ID}"
+def download_bytelevel(local_dir: str = "./data", cache_dir: str = ".cache", repo_id: str = FINEWEBEDU_REPO_ID) -> None:
+    TARGET_REPO_ID = f"{HF_USERNAME}/{repo_id}"
 
     # Make cache dir absolute path
     cache_dir = os.path.abspath(cache_dir)
