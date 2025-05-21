@@ -182,8 +182,8 @@ def get_tokenizer_statistics_fineweb(
             num_unk += row["num_unk"]
             frequency += Counter(row["token_ids"])
 
-        fertility = sum([k * v for k, v in split_length_distribution.items()]) / total_words
-        proportion_continued = total_continuation_words / total_words
+        fertility = sum([k * v for k, v in split_length_distribution.items()]) / total_words if total_words > 0 else 0
+        proportion_continued = total_continuation_words / total_words if total_words > 0 else 0
 
         # Compute Renyi entropy
         token_freq = list(frequency.values())
@@ -268,9 +268,11 @@ def get_tokenizer_statistics_common_corpus(
         df_dataset = processed_dataset.to_pandas()
         total_words = {lang: 0 for lang in languages}
         total_tokens = {lang: 0 for lang in languages}
+        unique_tokens = {lang : 0 for lang in languages}
         total_continuation_words = {lang: 0 for lang in languages}
         split_length_distribution = {lang: defaultdict(int) for lang in languages}
         num_unk = {lang: 0 for lang in languages}
+        frequencies = {lang : Counter() for lang in languages}
         for _, row in df_dataset.iterrows():
             language = row["language"]
             for length in row["continuation_lengths"]:
@@ -279,12 +281,23 @@ def get_tokenizer_statistics_common_corpus(
             total_continuation_words[language] += row["num_continuation_words"]
             total_tokens[language] += row["num_tokens"]
             num_unk[language] += row["num_unk"]
+            frequencies[language] += Counter(row["token_ids"])
 
         fertility = {
-            lang: sum([k * v for k, v in split_length_distribution[lang].items()]) / total_words[lang]
+            lang: sum([k * v for k, v in split_length_distribution[lang].items()]) / total_words[lang] if total_words[lang] > 0 else 0
             for lang in languages
         }
-        proportion_continued = {lang: total_continuation_words[lang] / total_words[lang] for lang in languages}
+        proportion_continued = {lang: (total_continuation_words[lang] / total_words[lang] if total_words[lang] > 0 else 0) for lang in languages}
+
+        # Compute Renyi entropy
+        token_freq = {lang: list(frequencies[lang].values()) for lang in languages}
+        unique_tokens = {lang: len(token_freq[lang]) for lang in languages}
+        total_subwords = {lang: sum(token_freq[lang]) for lang in languages}
+        token_probs = {lang : [freq / total_subwords[lang] for freq in token_freq[lang]] for lang in languages}
+
+        power = 2.5
+        scale = 1 / (1 - power)
+        renyi = {lang : scale * np.log2(np.sum(np.array(token_probs[lang]) ** power)) / np.log2(len(token_probs[lang])) for lang in languages}
 
         new_row = {
             "tokenizer_name": [folder] * len(languages),
@@ -294,7 +307,9 @@ def get_tokenizer_statistics_common_corpus(
             "total_split_words": [total_continuation_words[lang] for lang in languages],
             "total_words": [total_words[lang] for lang in languages],
             "total_tokens": [total_tokens[lang] for lang in languages],
+            "unique_tokens": [unique_tokens[lang] for lang in languages],
             "num_unk": [num_unk[lang] for lang in languages],
+            "renyi_efficiency": [renyi[lang] for lang in languages],
         }
 
         df = pd.concat([df, pd.DataFrame(new_row)], ignore_index=True) if df is not None else pd.DataFrame(new_row)

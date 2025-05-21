@@ -174,7 +174,7 @@ class LLMPredictor(Predictor):
         # Use the stride to split the long sequence into overlapping sequences.
         # This lets us process the entire sequence in chunks, while still maintaining the context.
         num_vectors = (len(long_ids) - self.ctx_length + self.stride) // self.stride
-        strided_ids = long_ids.as_strided(size=(num_vectors, 2048), stride=(self.stride, 1))
+        strided_ids = long_ids.as_strided(size=(num_vectors, self.ctx_length), stride=(self.stride, 1))
 
         # Ensure we can process the entire sequence in batches of self.batch_size
         while len(strided_ids) % self.batch_size != 0:
@@ -253,7 +253,7 @@ def get_llm_predictions(
     MODEL_REPO = f"{HF_USERNAME}/{BYTE_MODELS_REPO_ID}"
     TOKENIZER_REPO = f"{HF_USERNAME}/{TOK_REPO_ID}"
     DATA_REPO = f"{HF_USERNAME}/{corpus}"
-    TOKENIZER_NAME = BYTELEVEL_TOK_FOLDER
+    TOKENIZER_NAME = BYTELEVEL_TOK_FOLDER + ('2' if 'multi' in model_type else '')
     CACHE_FOLDER = CACHE_DIR / model_type
     MODEL_CACHE_PATH = CACHE_FOLDER / "model"
     TARGET_FOLDER = Path(BYTE_LLM_PREDICTION_DATA) / model_type

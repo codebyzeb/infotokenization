@@ -1,7 +1,7 @@
 # Script to launch training byte-level LLM on personal VM
 
 # Only train 99000 rows for small byte-level LLM
-uv run cli.py data download bytelevel-subset --num-train-rows 99000
+#uv run cli.py data finewebedu-download bytelevel-subset --num-train-rows 99000
 
 model=fw57M-tied
 
