@@ -325,10 +325,11 @@ def download_bytelevel(local_dir: str = "./data", cache_dir: str = ".cache", rep
         f"Using '{BYTE_DATA_NGRAM_TRAINING}' subset for training and 1/100th of '{BYTE_DATA_NGRAM_EXTRACTION}' subset for validation"
     )
     ds["validation"] = ds_val["train"].select(range(len(ds_val["train"]) // 100))
-    ds["train"] = ds["train"].remove_columns(["text"])
-    ds["validation"] = ds["validation"].remove_columns(["text"])
-    ds["train"] = ds["train"].remove_columns(["language"])
-    ds["validation"] = ds["validation"].remove_columns(["language"])
+    if repo_id == COMMONCORPUS_REPO_ID:
+        ds["train"] = ds["train"].remove_columns(["text"])
+        ds["validation"] = ds["validation"].remove_columns(["text"])
+        ds["train"] = ds["train"].remove_columns(["language"])
+        ds["validation"] = ds["validation"].remove_columns(["language"])
 
     out_path = f"{local_dir}/{TARGET_REPO_ID.split('/')[1]}/{BYTE_DATA_NGRAM_TRAINING}"
     print(f"Saving to {out_path}")
