@@ -12,7 +12,7 @@ from datatrove.pipeline.writers.huggingface import ParquetWriter
 from datatrove.utils.batching import batched
 from huggingface_hub import HfApi
 from rich import print
-from transformers import AutoTokenizer  # type: ignore
+from transformers import AutoTokenizer, PreTrainedTokenizerFast
 
 from commands.configs import (
     BYTE_DATA_FOLDER,
@@ -28,11 +28,48 @@ from commands.configs import (
 )
 
 app = typer.Typer()
+class AddPreTokenizationBoundaries():
 
+    def __init__(self, tokenizer: PreTrainedTokenizerFast) -> None:
+        """
+        :param tokenizer: Tokenizer from `transformers`.
+        """
+        self.tokenizer = tokenizer
+
+    def __call__(self, examples) -> dict:
+        """Add pre-tokenization boundaries to the examples."""
+        input_ids = examples["input_ids"]
+        if len(examples) == 1:
+            input_ids = [input_ids]
+        pre_token_boundaries_list = []
+        for ids in input_ids:
+            text = self.tokenizer.decode(ids)
+            pre_tokenized = self.tokenizer._tokenizer.pre_tokenizer.pre_tokenize_str(text)
+            pre_token_boundaries = [False] * len(ids)
+            prev_boundary = 0
+            for t in pre_tokenized:
+                pre_token_boundaries[prev_boundary] = True
+                pre_token = t[0]
+                left_boundary = t[1][0]
+                right_boundary = t[1][1]
+                token = text[left_boundary:right_boundary]
+                tokenized_token = self.tokenizer.tokenize(token)
+                tokenized_length = len(tokenized_token)
+                # We tokenizing every pre_token individually, which may
+                # incorrectly add an initial space token
+                if pre_token[0] != 'Ġ':
+                    tokenized_length -= 1 
+                prev_boundary += tokenized_length
+            assert(prev_boundary == len(ids))
+            pre_token_boundaries_list.append(pre_token_boundaries)
+        examples["pre_token_boundaries"] = pre_token_boundaries_list
+        return examples 
 
 @app.command()
 def finewebedu_tokenize(
-    tok_path: str = f"{HF_USERNAME}/{TOK_REPO_ID}", subfolder: str | None = BYTE_DATA_FOLDER, batch_size: int = 1000
+    tok_path: str = f"{HF_USERNAME}/{TOK_REPO_ID}",
+    subfolder: str | None = BYTE_DATA_FOLDER,
+    batch_size: int = 1000
 ) -> None:
     SOURCE_REPO_ID = "hf://datasets/pietrolesci/finewebedu-20B/data"
     TARGET_REPO_ID = f"{HF_USERNAME}/{FINEWEBEDU_REPO_ID}"
@@ -257,7 +294,10 @@ def commoncorpus_subset(
 
 @app.command()
 def finewebedu_subset(
-    subset_size: int = NUM_TRAIN_ROWS, subfolder: str = BYTE_DATA_NGRAM_TRAINING, shift_amount: int = 0
+    subset_size: int = NUM_TRAIN_ROWS,
+    subfolder: str = BYTE_DATA_NGRAM_TRAINING,
+    shift_amount: int = 0,
+    add_pre_tokenization_boundaries: bool = False,
 ) -> None:
     DATA_REPO_ID = f"{HF_USERNAME}/{FINEWEBEDU_REPO_ID}"
 
@@ -272,6 +312,10 @@ def finewebedu_subset(
     dataset = list(dataset.take(subset_size))  # type: ignore
     dataset = Dataset.from_list(dataset)
 
+    if add_pre_tokenization_boundaries:
+        tokenizer = AutoTokenizer.from_pretrained(f"{HF_USERNAME}/{TOK_REPO_ID}", subfolder=BYTE_DATA_FOLDER+'2')
+        dataset = dataset.map(AddPreTokenizationBoundaries(tokenizer), batched=True)
+
     print(f"✅ Successfully created a {subset_size}-row subset of FineWebEdu dataset")
     print(f"🆙 Uploading the subset to {DATA_REPO_ID} on the HF Hub")
 
@@ -282,7 +326,10 @@ def finewebedu_subset(
 
 @app.command()
 def finewebedu_download(
-    tok: str, local_dir: str = "./data", cache_dir: str = ".cache", num_train_rows: int = 20_000_000
+    tok: str,
+    local_dir: str = "./data",
+    cache_dir: str = ".cache",
+    num_train_rows: int = 20_000_000
 ) -> None:
     TARGET_REPO_ID = f"{HF_USERNAME}/{FINEWEBEDU_REPO_ID}"
 
