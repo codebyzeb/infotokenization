@@ -267,7 +267,6 @@ class ThresholdTokenizerTrainer:
         if self.eos_token_id is None:
             raise ValueError("Byte tokenizer must have an EOS token.")
         self.device = torch.device("cpu")  # for some reason cpu is faster than cuda
-        self.pre_tokenizer = pre_tokenizers.ByteLevel(add_prefix_space=False)
 
         self.build_initial_vocab()
         # Efficiently keep track of subwords without needing to decode at every step
@@ -335,12 +334,7 @@ class ThresholdTokenizerTrainer:
             if count < self.frequency_threshold:
                 break  # Can break here because we've sorted the segments by frequency
             is_start_of_word, token_ids = token_ref
-            token = self.byte_tokenizer.decode(token_ids)
-            # Need to convert back to a byte-based representation
-            pre_tokenized = self.pre_tokenizer.pre_tokenize_str(token)
-            if len(pre_tokenized) != 1:
-                continue
-            token = pre_tokenized[0][0]
+            token = ''.join([self.byte_tokenizer.convert_ids_to_tokens(t) for t in token_ids])
             if not is_start_of_word:
                 token = "##" + token
             else:
@@ -515,8 +509,6 @@ class ByteCurveTokenizerTrainer:
         self.subwords = {}
         self.inverse_vocab = {}
         self.subword_vocab = {}
-        self.broken_subwords = []
-        self.pre_tokenizer = pre_tokenizers.ByteLevel(add_prefix_space=False)
         
         if threshold_percentile is not None:
             if threshold_percentile < 0 or threshold_percentile > 100:
@@ -632,12 +624,7 @@ class ByteCurveTokenizerTrainer:
         return examples
 
     def create_token(self, ids, pre_token_boundaries, start, end):
-        token = self.byte_tokenizer.decode(ids[start:end])
-        pre_tokenized = self.pre_tokenizer.pre_tokenize_str(token)
-        if len(pre_tokenized) != 1:
-            self.broken_subwords.append((token, start, end))
-            return None
-        token = pre_tokenized[0][0]
+        token = ''.join([self.byte_tokenizer.convert_ids_to_tokens(t) for t in ids[start:end]])
         if ids[start-1] == self.space_token_id:
             token = self.space_token + token
         elif not pre_token_boundaries[start]:
@@ -692,7 +679,7 @@ class ByteCurveTokenizerTrainer:
         )
         # Sort subwords by frequency
         self.subwords = sorted(self.subwords.items(), key=lambda x: x[1], reverse=True)
-        logger.info(f'Found {len(self.subwords)} subwords ({len(self.broken_subwords)} broken).')
+        logger.info(f'Found {len(self.subwords)} subwords.')
         if self.frequency_threshold is None:
             self.logger.info("Frequency threshold not provided, keeping all discovered vocabulary items.")
         if isinstance(self.frequency_threshold, int):
@@ -828,7 +815,7 @@ def create_frequencytokenizer(
     ],
     merge_type: Annotated[
         str,
-        typer.Argument(help=f"Type of merge to perform. Supported options: {InfoTokenizerTrainer.VALID_MERGE_TYPES}"),
+        typer.Argument(help=f"Type of merge to perform. Supported options: {FrequencyTokenizerTrainer.VALID_MERGE_TYPES}"),
     ],
     corpus: Annotated[
         str,
@@ -1058,28 +1045,27 @@ def create_bytespantokenizer(
     )
 
     logger.info("⚙️ Training the ByteSpan Tokenizer")
-    for vocab_size in vocab_sizes:
-        folder_path_specific = folder_path / str(vocab_size)
-        folder_path_specific.mkdir(parents=True, exist_ok=True)
-        trainer.train(final_vocab_size=vocab_size)
-        tokenizer = trainer.create_tokenizer()
-        tokenizer.save_pretrained(str(folder_path_specific))
-        trainer.save_vocab_and_stats(folder_path_specific)
-        logger.info(f"✅ Successfully trained a tokenizer with a vocabulary size of {vocab_size}")
+    folder_path_specific = folder_path / str(vocab_size)
+    folder_path_specific.mkdir(parents=True, exist_ok=True)
+    trainer.train(final_vocab_size=vocab_size)
+    tokenizer = trainer.create_tokenizer()
+    tokenizer.save_pretrained(str(folder_path_specific))
+    trainer.save_vocab_and_stats(folder_path_specific)
+    logger.info(f"✅ Successfully trained a tokenizer with a vocabulary size of {vocab_size}")
 
-        repo_id = f"{HF_USERNAME}/{folder_path.parent}"
-        logger.info(f"🆙 Uploading the tokenizer to {repo_id} on the HF Hub")
+    repo_id = f"{HF_USERNAME}/{folder_path.parent}"
+    logger.info(f"🆙 Uploading the tokenizer to {repo_id} on the HF Hub")
 
-        path_in_repo = folder_path.name + f"_{vocab_size}"
-        api.create_repo(repo_id, exist_ok=True)
-        api.upload_folder(
-            folder_path=folder_path_specific,
-            repo_id=repo_id,
-            path_in_repo=path_in_repo,
-            repo_type="model",
-            revision="main",
-        )
-        logger.info(f"✅ Successfully uploaded the tokenizer to {repo_id}")
+    path_in_repo = folder_path.name + f"_{vocab_size}"
+    api.create_repo(repo_id, exist_ok=True)
+    api.upload_folder(
+        folder_path=folder_path_specific,
+        repo_id=repo_id,
+        path_in_repo=path_in_repo,
+        repo_type="model",
+        revision="main",
+    )
+    logger.info(f"✅ Successfully uploaded the tokenizer to {repo_id}")
 
     shutil.rmtree(folder_path, ignore_errors=True)
 
