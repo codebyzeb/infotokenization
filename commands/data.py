@@ -364,7 +364,6 @@ def download_bytelevel(local_dir: str = "./data", cache_dir: str = ".cache", rep
         TARGET_REPO_ID, name=BYTE_DATA_NGRAM_EXTRACTION, cache_dir=cache_dir, num_proc=min(12, os.cpu_count())
     )  # type: ignore
 
-    total_size = len(ds["train"])
     print(
         f"Using '{BYTE_DATA_NGRAM_TRAINING}' subset for training and 1/100th of '{BYTE_DATA_NGRAM_EXTRACTION}' subset for validation"
     )
