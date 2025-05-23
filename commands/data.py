@@ -144,7 +144,7 @@ def finewebedu_tokenize(
 
 @app.command()
 def tokenize_and_subset_commoncorpus(
-    tokens_per_language: int = TOKENS_PER_LANGUAGE * 4,  # Overshoot a bit here just in case, we cut this down later
+    tokens_per_language: int = TOKENS_PER_LANGUAGE * 8,  # Overshoot a bit here just in case, we cut this down later
     languages: list[str] = LANGUAGES,
     tok_path: str = f"{HF_USERNAME}/{TOK_REPO_ID}",
     subfolder: str | None = BYTE_DATA_FOLDER,
@@ -246,9 +246,9 @@ def commoncorpus_subset(
     tokens_per_language: int = TOKENS_PER_LANGUAGE,
     subfolder: str = BYTE_DATA_NGRAM_TRAINING,
     shift_amount: int = 0,
+    add_pre_tokenization_boundaries: bool = False,
 ) -> None:
     DATA_REPO_ID = f"{HF_USERNAME}/{COMMONCORPUS_REPO_ID}"
-    byte_retokenizer = AutoTokenizer.from_pretrained(f"{HF_USERNAME}/{TOK_REPO_ID}", subfolder=BYTE_DATA_FOLDER)
 
     print(f"⚙️ Creating a {tokens_per_language}-token subset of Common Corpus located at \n\t{DATA_REPO_ID=}")
 
@@ -264,20 +264,17 @@ def commoncorpus_subset(
         if language_token_counts[example["language"]] < tokens_per_language * (shift_amount):
             return False
         return True
-    
-    def retokenize_fn(batch):
-        text = batch["text"]
-        tokenized = byte_retokenizer(text)["input_ids"]
-        batch["input_ids"] = tokenized
-        batch["num_tokens"] = len(tokenized)
-        return batch
 
     # Load the dataset
     dataset = load_dataset(DATA_REPO_ID, name=BYTE_DATA_FOLDER, split="train", streaming=True)
     dataset = dataset.filter(filter_fn)  # type: ignore
     dataset = list(dataset)
     dataset = Dataset.from_list(dataset)
-    dataset = dataset.map(retokenize_fn)  # type: ignore
+
+    if add_pre_tokenization_boundaries:
+        tokenizer = AutoTokenizer.from_pretrained(f"{HF_USERNAME}/{TOK_REPO_ID}", subfolder=BYTE_DATA_FOLDER)
+        dataset = dataset.map(AddPreTokenizationBoundaries(tokenizer), batched=True)
+
 
     print(
         f"✅ Successfully created a subset of Common Corpus dataset shifted by {shift_amount} * {tokens_per_language} tokens per language"
@@ -313,7 +310,7 @@ def finewebedu_subset(
     dataset = Dataset.from_list(dataset)
 
     if add_pre_tokenization_boundaries:
-        tokenizer = AutoTokenizer.from_pretrained(f"{HF_USERNAME}/{TOK_REPO_ID}", subfolder=BYTE_DATA_FOLDER+'2')
+        tokenizer = AutoTokenizer.from_pretrained(f"{HF_USERNAME}/{TOK_REPO_ID}", subfolder=BYTE_DATA_FOLDER)
         dataset = dataset.map(AddPreTokenizationBoundaries(tokenizer), batched=True)
 
     print(f"✅ Successfully created a {subset_size}-row subset of FineWebEdu dataset")
