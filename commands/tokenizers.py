@@ -303,7 +303,6 @@ class InfoTokenizerTrainer:
             PreTrainedTokenizerFast: The subword BPE-like tokenizer with custom merges.
         """
         tokenizer = Tokenizer(models.BPE(vocab=self.get_vocab(), merges=self.get_merges()))
-        # tokenizer.normalizer = normalizers.Sequence([normalizers.NFD()])  # type: ignore
         tokenizer.pre_tokenizer = pre_tokenizers.ByteLevel(add_prefix_space=ADD_PREFIX_SPACE, use_regex=True)  # type: ignore
         tokenizer.post_processor = processors.ByteLevel(trim_offsets=True)  # type: ignore
         tokenizer.decoder = decoders.ByteLevel()  # type: ignore
@@ -328,6 +327,7 @@ class ThresholdTokenizerTrainer:
         measure: str,
         do_merges: bool = False,
         include_space: bool = False,
+        include_left_byte: bool = False,
         keep_intermediate_vocab: bool = True,
         frequency_threshold: int | None = None,
         logger: logging.Logger | None = None,
@@ -350,6 +350,7 @@ class ThresholdTokenizerTrainer:
         self.byte_tokenizer = byte_tokenizer
         self.do_merges = do_merges
         self.include_space = include_space
+        self.include_left_byte = include_left_byte
         self.keep_intermediate_vocab = keep_intermediate_vocab
         self.frequency_threshold = frequency_threshold
         self.logger = logger if logger else get_logger("tokenizer")
@@ -423,8 +424,10 @@ class ThresholdTokenizerTrainer:
                     if key != PAD_TOKEN and key != EOS_TOKEN and key != UNK_TOKEN:
                         # Check if the key is a letter, if so it probably appears
                         # at the start of a word, so we add it to the vocab with the space token
-                        if key.isalpha():
+                        if key.isalpha() and key != self.space_token:
                             self.base_vocab[self.space_token + key] = len(self.base_vocab)
+                        # if key != self.space_token:
+                        #     self.base_vocab[self.space_token + key] = len(self.base_vocab)
                         self.base_vocab[key] = len(self.base_vocab)
                         self.base_vocab["##" + key] = len(self.base_vocab)
             self.base_vocab[UNK_TOKEN] = len(self.base_vocab)
@@ -472,10 +475,18 @@ class ThresholdTokenizerTrainer:
 
     def wordpiece_step(self, min_idx):
         # Update left and right boundaries
-        if min_idx > 0 and self.left_boundaries[min_idx - 1] != -1:
-            left_boundary = self.left_boundaries[min_idx - 1]
+        if self.include_left_byte:
+            if min_idx > 1 and self.left_boundaries[min_idx - 2] != -1:
+                left_boundary = self.left_boundaries[min_idx - 2]
+            elif min_idx > 0:
+                left_boundary = min_idx - 1
+            else:
+                left_boundary = min_idx
         else:
-            left_boundary = min_idx
+            if min_idx > 0 and self.left_boundaries[min_idx - 1] != -1:
+                left_boundary = self.left_boundaries[min_idx - 1]
+            else:
+                left_boundary = min_idx
         if min_idx < self.total_tokens - 1 and self.right_boundaries[min_idx + 1] != -1:
             right_boundary = self.right_boundaries[min_idx + 1]
         else:
@@ -630,7 +641,6 @@ class ThresholdTokenizerTrainer:
             tokenizer = Tokenizer(models.BPE(vocab=self.vocab, merges=self.merges))
         else:
             tokenizer = Tokenizer(models.WordPiece(vocab=self.vocab, unk_token=UNK_TOKEN))  # type: ignore
-        # tokenizer.normalizer = normalizers.Sequence([normalizers.NFD()])
         tokenizer.pre_tokenizer = pre_tokenizers.ByteLevel(
             add_prefix_space=ADD_PREFIX_SPACE, use_regex=(not self.include_space)
         )
@@ -763,6 +773,7 @@ def create_thresholdtokenizer(
     bpe_like: Annotated[bool, typer.Option(help="If True, use BPE-like merges.")] = False,
     merge_spaces: Annotated[bool, typer.Option(help="If True, allow multi-word merges.")] = False,
     keep_intermediate_vocab: Annotated[bool, typer.Option(help="If True, keep intermediate vocabularies.")] = True,
+    include_left_byte: Annotated[bool, typer.Option(help="If True, include left byte in merges.")] = False,
     frequency_threshold: Annotated[int, typer.Option(help="Frequency threshold for merging tokens.")] = 20,
     num_training_rows: Annotated[int, typer.Option(help="Number of training rows to use.")] = 100000,
     vocab_sizes: Annotated[
@@ -777,6 +788,7 @@ def create_thresholdtokenizer(
         + ("B" if not keep_intermediate_vocab else "")
         + ("X" if merge_spaces else "")
         + ("M" if bpe_like else "")
+        + ("L" if include_left_byte else "")
     )
     folder_path = Path(TOK_REPO_ID) / tokenizer_name
     api = HfApi()
@@ -808,6 +820,7 @@ def create_thresholdtokenizer(
         measure=measure,
         do_merges=bpe_like,
         include_space=merge_spaces,
+        include_left_byte=include_left_byte,
         keep_intermediate_vocab=keep_intermediate_vocab,
         frequency_threshold=frequency_threshold,
         logger=logger,

@@ -253,7 +253,7 @@ def get_llm_predictions(
     MODEL_REPO = f"{HF_USERNAME}/{BYTE_MODELS_REPO_ID}"
     TOKENIZER_REPO = f"{HF_USERNAME}/{TOK_REPO_ID}"
     DATA_REPO = f"{HF_USERNAME}/{corpus}"
-    TOKENIZER_NAME = BYTELEVEL_TOK_FOLDER + ('2' if 'multi' in model_type else '')
+    TOKENIZER_NAME = BYTELEVEL_TOK_FOLDER
     CACHE_FOLDER = CACHE_DIR / model_type
     MODEL_CACHE_PATH = CACHE_FOLDER / "model"
     TARGET_FOLDER = Path(BYTE_LLM_PREDICTION_DATA) / model_type

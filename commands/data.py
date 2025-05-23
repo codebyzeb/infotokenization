@@ -211,7 +211,7 @@ def commoncorpus_subset(
     shift_amount: int = 0,
 ) -> None:
     DATA_REPO_ID = f"{HF_USERNAME}/{COMMONCORPUS_REPO_ID}"
-    byte_retokenizer = AutoTokenizer.from_pretrained(f"{HF_USERNAME}/{TOK_REPO_ID}", subfolder=BYTE_DATA_FOLDER+'2')
+    byte_retokenizer = AutoTokenizer.from_pretrained(f"{HF_USERNAME}/{TOK_REPO_ID}", subfolder=BYTE_DATA_FOLDER)
 
     print(f"⚙️ Creating a {tokens_per_language}-token subset of Common Corpus located at \n\t{DATA_REPO_ID=}")
 
