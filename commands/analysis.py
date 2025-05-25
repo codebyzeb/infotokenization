@@ -23,6 +23,7 @@ from commands.configs import (
     LANGUAGES,
     TOK_REPO_ID,
 )
+from commands.data import AddPreTokenizationBoundaries
 
 app = typer.Typer()
 
@@ -43,19 +44,9 @@ class ExtractTokenizerStats:
         else:
             raise ValueError(f"Unsupported tokenizer type: {type(self.tokenizer.backend_tokenizer.model)}")
 
-    def is_new_word(self, token):
-        if self.tokenizer_type == "BPE":
-            return SPACE_TOKEN in token or NEWLINE_TOKEN in token
-        elif self.tokenizer_type == "WordPiece":
-            return not token.startswith(CONTINUATION_TOKEN)
-        else:
-            raise ValueError(f"Unsupported tokenizer type: {self.tokenizer_type}")
-
     def __call__(self, batch):
-        text = [self.byte_tokenizer.decode(inp) for inp in batch["input_ids"]]
-        tokenized = self.tokenizer(text)
-        batch["token_ids"] = [tokens.ids for tokens in tokenized[:]]
-        batch["num_tokens"] = [len(tokens.tokens) for tokens in tokenized[:]]
+        byte_ids = batch["input_ids"]
+        pre_token_boundaries = batch["pre_token_boundaries"]
 
         total_words_list = []
         continuation_lengths_list = []
@@ -63,52 +54,56 @@ class ExtractTokenizerStats:
         num_continuation_words_list = []
         num_tokens_list = []
         num_unk_list = []
+        token_ids_list = []
 
-        for tokens in tokenized[:]:
-            tokens = tokens.tokens
-
-            current_length = 0
+        for ids, boundaries in zip(byte_ids, pre_token_boundaries):
+            tokens = []
             total_words = 0
+            num_tokens = 0
             continuation_lengths = []
             num_full_words = 0
             num_continuation = 0
             num_unk = 0
-            for token in tokens:
-                if self.tokenizer_type == "WordPiece" and token == self.tokenizer.unk_token:
-                    num_unk += 1
-                if self.is_new_word(token):
-                    if current_length == 0:
-                        continue
-                    total_words += 1
-                    continuation_lengths.append(current_length)
-                    if current_length == 1:
-                        num_full_words += 1
-                    else:
-                        num_continuation += 1
-                    current_length = 0
-                if token == SPACE_TOKEN or token == NEWLINE_TOKEN:
-                    continue
-                current_length += 1
-            if current_length > 0:
+            start = 0
+
+            byte_ranges = []
+            for i in range(1, len(ids)):
+                if boundaries[i]:
+                    byte_ranges.append((start, i))
+                    start = i
+            if start < len(ids):
+                byte_ranges.append((start, len(ids)))
+
+            text_sequences = self.byte_tokenizer.batch_decode([ids[start:end] for start, end in byte_ranges])
+            token_sequences = self.tokenizer(text_sequences)
+            for token_sequence in token_sequences["input_ids"]:
+                sequence_length = len(token_sequence)
+                tokens.extend(token_sequence)
                 total_words += 1
-                continuation_lengths.append(current_length)
-                if current_length == 1:
+                num_tokens += sequence_length
+                continuation_lengths.append(sequence_length)
+                if sequence_length == 1:
                     num_full_words += 1
+                    if self.tokenizer_type == "WordPiece" and token_sequence[0] == self.tokenizer.unk_token:
+                        num_unk += 1
                 else:
                     num_continuation += 1
+            
             total_words_list.append(total_words)
             continuation_lengths_list.append(continuation_lengths)
             num_full_words_list.append(num_full_words)
             num_continuation_words_list.append(num_continuation)
             num_tokens_list.append(len(tokens))
             num_unk_list.append(num_unk)
+            token_ids_list.append(tokens)
+
         batch["total_words"] = total_words_list
         batch["continuation_lengths"] = continuation_lengths_list
         batch["num_full_words"] = num_full_words_list
         batch["num_continuation_words"] = num_continuation_words_list
         batch["num_unk"] = num_unk_list
+        batch["token_ids"] = token_ids_list
         return batch
-
 
 @app.command()
 def get_tokenizer_statistics_fineweb(
@@ -133,6 +128,15 @@ def get_tokenizer_statistics_fineweb(
 
     byte_tokenizer = AutoTokenizer.from_pretrained(TOKENIZER_REPO, subfolder=BYTELEVEL_TOK_FOLDER)
     byte_data: Dataset = load_dataset(DATA_REPO, BYTE_DATA_TOKENIZER_EVALUATION, split="train")  # type: ignore
+
+    if 'pre_token_boundaries' not in byte_data.column_names:
+        print("Adding pre-tokenization boundaries to the dataset")
+        byte_data = byte_data.map(
+            AddPreTokenizationBoundaries(byte_tokenizer),
+            batched=True,
+            desc="Adding pre-tokenization boundaries",
+            num_proc=min(os.cpu_count(), 8),
+        )
 
     files = list_repo_files(TOKENIZER_REPO)
     folders = set()

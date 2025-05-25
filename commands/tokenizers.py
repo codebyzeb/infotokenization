@@ -336,11 +336,9 @@ class ThresholdTokenizerTrainer:
             if count < self.frequency_threshold:
                 break  # Can break here because we've sorted the segments by frequency
             is_start_of_word, token_ids = token_ref
-            token = ''.join([self.byte_tokenizer.convert_ids_to_tokens(t) for t in token_ids])
+            token = ''.join(self.byte_tokenizer.convert_ids_to_tokens(token_ids))
             if not is_start_of_word:
                 token = "##" + token
-            else:
-                token = self.space_token + token
             if token not in self.vocab:
                 self.vocab[token] = vocab_size
                 vocab_size += 1
@@ -361,6 +359,10 @@ class ThresholdTokenizerTrainer:
                 left_boundary = self.left_boundaries[min_idx - 1]
             else:
                 left_boundary = min_idx
+
+        # Shift left by one if we can include the space token byte
+        if not self.pre_token_boundaries[left_boundary] and self.ids[left_boundary-1] == self.space_token_id:
+            left_boundary -= 1
         
         # Don't merge right if right token is a pre-token boundary
         if min_idx < self.total_tokens - 1 and self.right_boundaries[min_idx + 1] != -1 and not self.pre_token_boundaries[min_idx + 1]:
@@ -375,7 +377,7 @@ class ThresholdTokenizerTrainer:
         # Create hashable subword
         seg = self.ids[left_boundary : right_boundary + 1]
         seg_tuple = tuple(seg.tolist())
-        is_start = self.ids[left_boundary - 1] == self.space_token_id and not self.pre_token_boundaries[left_boundary]
+        is_start = self.pre_token_boundaries[left_boundary]
         token_ref = (bool(is_start), seg_tuple)
 
         self.segment_counts[token_ref] += 1
@@ -478,7 +480,7 @@ class ByteCurveTokenizerTrainer:
         dataset: Dataset,
         byte_tokenizer: PreTrainedTokenizerFast,
         measure: str,
-        frequency_threshold: int | float | None = None,
+        proportion_bytespan: int | float | None = None,
         threshold_percentile: int | None = None,
         logger: logging.Logger | None = None,
     ) -> None:
@@ -488,8 +490,7 @@ class ByteCurveTokenizerTrainer:
             dataset (Dataset): The dataset to use for training containing information measures for each token.
             byte_tokenizer (ByteLevelBPETokenizer): The byte-level tokenizer to use for the initial vocabulary.
             measure (str): The information measure to use ('Entropy', 'Surprisal', etc.).
-            frequency_threshold (int, optional): Frequency threshold for tokens to be included in the vocabulary. If int, use
-                as a threshold for the number of tokens. If float, uses as a percentile for the number of tokens to keep.
+            proportion_bytespan (int, optional): If set, determines the percentage of the final vocabulary that will come from bytespans, the remainder will be from BPE.
             threshold_percentile (int, optional): Besides curves, also include tokens in a span if they fall under the threshold,
                 calculated as a percentile of the signal values. This is useful for very predictable tokens that might cause the curve
                 to slightly increase at low signal values.
@@ -500,7 +501,7 @@ class ByteCurveTokenizerTrainer:
         self.measure = measure
         self.dataset = dataset
         self.byte_tokenizer = byte_tokenizer
-        self.frequency_threshold = frequency_threshold
+        self.proportion_bytespan = proportion_bytespan
         self.threshold_percentile = threshold_percentile
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.logger = logger if logger else get_logger("tokenizer")
@@ -508,14 +509,15 @@ class ByteCurveTokenizerTrainer:
         self.space_token_id = byte_tokenizer.encode(" ")[0]
         self.space_token = byte_tokenizer.convert_ids_to_tokens(self.space_token_id)
 
-        self.vocab = self.byte_tokenizer.get_vocab()
-        self.vocab[UNK_TOKEN] = len(self.vocab)
-        keys = list(self.byte_tokenizer.get_vocab().keys())
+        self.initial_vocab = self.byte_tokenizer.get_vocab()
+        keys = list(self.initial_vocab.keys())
+        self.initial_vocab[UNK_TOKEN] = len(self.initial_vocab)
         for key in keys:
             if key != PAD_TOKEN and key != EOS_TOKEN and key != UNK_TOKEN:
                 if key != self.space_token:
-                    self.vocab[self.space_token + key] = len(self.vocab)
-                self.vocab["##" + key] = len(self.vocab)
+                    self.initial_vocab[self.space_token + key] = len(self.initial_vocab)
+                self.initial_vocab["##" + key] = len(self.initial_vocab)
+        self.vocab = self.initial_vocab.copy()
         self.inverse_vocab = {v: k for k, v in self.vocab.items()}
         self.logger.info(f"Initial vocabulary size: {len(self.vocab)}")
         
@@ -527,6 +529,9 @@ class ByteCurveTokenizerTrainer:
             self.threshold = self.get_threshold()
             self.logger.info(f"Threshold value: {self.threshold}")
         self.threshold = None
+
+        self.subword_frequencies = None
+        self.subword_spans_to_tokens = {}
     
     def get_threshold(self) -> float:
         """Get the threshold value for the tokenizer.
@@ -630,7 +635,7 @@ class ByteCurveTokenizerTrainer:
             for start in word_start_indices:
                 length = word_lengths[start]
                 id_span = ids[start:start + length].tolist()
-                token = ''.join([self.byte_tokenizer.convert_ids_to_tokens(t) for t in id_span])
+                token = ''.join(self.byte_tokenizer.convert_ids_to_tokens(id_span))
                 is_pre_token_start = pre_token_boundaries[start].item()
                 if not is_pre_token_start:
                     token = '##' + token
@@ -645,94 +650,138 @@ class ByteCurveTokenizerTrainer:
 
     def train(self, final_vocab_size):
         """ Train the tokenizer """
-        self.logger.info('Finding byte curves')
-        self.dataset = self.dataset.map(
-            self.find_subword_boundaries,
-            batched=True,
-            batch_size=100,
-            num_proc=1,
-            desc="Finding subword boundaries"
-        )
-        subword_frequencies, subword_spans_to_tokens = self.create_vocab_from_spans()
-        subword_frequencies = sorted(subword_frequencies.items(), key=lambda x: x[1], reverse=True)
-        logger.info(f'Found {len(subword_frequencies)} subwords.')
-        if self.frequency_threshold is None:
-            self.logger.info("Frequency threshold not provided, keeping all discovered vocabulary items.")
-        elif isinstance(self.frequency_threshold, int):
-            logger.info(f'Using frequency threshold of {self.frequency_threshold} to filter subwords.')
-            subword_frequencies = {k: v for k, v in subword_frequencies.items() if v > self.frequency_threshold}
-            logger.info(f'Filtered subwords to {len(subword_frequencies)} items.')
-        elif isinstance(self.frequency_threshold, float):
-            total_items = self.frequency_threshold * final_vocab_size - len(self.vocab)
-            logger.info(f'Using percentage threshold, keeping most frequent subwords to reach {100*self.frequency_threshold}% of target vocab size.')
-            if self.frequency_threshold < 0 or self.frequency_threshold > 1:
-                raise ValueError("Frequency threshold must be between 0 and 1.")
-            subword_frequencies = dict(subword_frequencies[:int(total_items)])
-            logger.info(f'Filtered subwords to {len(subword_frequencies)} most frequent items.')
-
-        for key in subword_frequencies.keys():
-            if not key in self.vocab:
-                self.vocab[key] = len(self.vocab)
-            else:
-                raise RuntimeError(f"Error: subword '{key}' already exists in the vocabulary.")
+        # Can call train multiple times, so always reset vocabulary first
+        self.vocab = self.initial_vocab.copy()
         self.inverse_vocab = {v: k for k, v in self.vocab.items()}
-        self.logger.info(f"Updated vocab size: {len(self.vocab)}")
 
-        if len(subword_frequencies) > final_vocab_size:
+        if self.proportion_bytespan == 0.0:
+            self.logger.info('Proportion bytespan set to 0. Skipping byte spans, will just use BPE.')
+        else:
+            if self.subword_frequencies is None:
+                self.logger.info('Finding subwords using byte curves...')
+                self.dataset = self.dataset.map(
+                    self.find_subword_boundaries,
+                    batched=True,
+                    num_proc=min(12, os.cpu_count()),
+                    desc="Finding subword boundaries"
+                )
+                self.subword_frequencies, self.subword_spans_to_tokens = self.create_vocab_from_spans()
+                logger.info(f'Found {len(self.subword_frequencies)} unique subwords in dataset.')
+            else:
+                self.logger.info('Using existing subword frequencies and spans.')
+            sorted_subword_frequencies = sorted(self.subword_frequencies.items(), key=lambda x: x[1], reverse=True)
+            if self.proportion_bytespan is None:
+                self.logger.info("Proportion bytespan not provided, keeping all discovered vocabulary items.")
+            else:
+                total_items = self.proportion_bytespan * final_vocab_size - len(self.vocab)
+                logger.info(f'Using percentage threshold, keeping most frequent subwords to reach {100*self.proportion_bytespan}% of target vocab size.')
+                if self.proportion_bytespan < 0 or self.proportion_bytespan > 1:
+                    raise ValueError("Frequency threshold must be between 0 and 1.")
+                sorted_subword_frequencies = dict(sorted_subword_frequencies[:int(total_items)])
+                logger.info(f'Filtered subwords to {len(sorted_subword_frequencies)} most frequent items.')
+
+            self.logger.info(f"Adding {len(sorted_subword_frequencies)} subwords to the initial vocabulary.")
+            for key in sorted_subword_frequencies.keys():
+                if not key in self.vocab:
+                    self.vocab[key] = len(self.vocab)
+                else:
+                    raise RuntimeError(f"Error: subword '{key}' already exists in the vocabulary.")
+            self.inverse_vocab = {v: k for k, v in self.vocab.items()}
+            assert len(self.vocab) == len(self.inverse_vocab), "Vocabulary and inverse vocabulary must have the same size."
+            self.logger.info(f"Updated vocab size: {len(self.vocab)}")
+
+        if len(self.vocab) >= final_vocab_size:
             self.logger.info(f"Final vocab size {len(self.vocab)} exceeds target {final_vocab_size}.")
             self.logger.info("Filtering discovered tokens by frequency.")
             self.vocab = {k: v for k, v in self.vocab.items() if v < final_vocab_size}
             self.inverse_vocab = {v: k for k, v in self.vocab.items()}
         else:
             self.logger.info(f"Running BPE to learn remaining subwords.")
-            self.bpe(final_vocab_size, subword_spans_to_tokens)
+            self.bpe(final_vocab_size)
         self.logger.info(f"Final vocab size reached: {len(self.vocab)}")
         return self.vocab
 
-    def bpe(self, final_vocab_size, subword_spans_to_tokens):
+    def bpe(self, final_vocab_size):
         """Run BPE to learn remaining subwords."""
 
+        subword_spans_to_ids = {span: self.vocab[token] for span, token in self.subword_spans_to_tokens.items() if token in self.vocab}
+        if len(subword_spans_to_ids) == 0:
+            self.logger.info("No valid bytespan subwords found, running BPE from byte-level tokens.")
+            self.logger.info("Creating vector ID to apply merges and calculate frequencies...")
+            ids = torch.cat([torch.tensor(x, dtype=torch.int64).to(self.device) for x in self.dataset["input_ids"]])
+            pre_token_boundaries = torch.cat([torch.tensor(x, dtype=torch.bool).to(self.device) for x in self.dataset["pre_token_boundaries"]])
+        else:
+            old_length = sum(example["num_tokens"] for example in self.dataset)
 
-        self.logger.info("Creating vector ID to apply merges and calculate frequencies")
-        ids = torch.cat([torch.tensor(x, dtype=torch.int64).to(self.device) for x in self.dataset["input_ids"]])
-        pre_token_boundaries = torch.cat([torch.tensor(x, dtype=torch.bool).to(self.device) for x in self.dataset["pre_token_boundaries"]])
+            def merge_ids(examples):
+                # Pre-allocate lists with known size
+                batch_size = len(examples["input_ids"])
+                ids_list = [None] * batch_size
+                pre_token_boundaries_list = [None] * batch_size
 
-        subword_spans_to_ids = {span: self.vocab[token] for span, token in subword_spans_to_tokens.items() if token in self.vocab}
-        if len(subword_spans_to_ids) != 0:
-            # Using the filtered vocab, create a convenient mapping from subword spans to IDs
-            subword_starts = torch.cat([torch.tensor(x, dtype=torch.int32).to(self.device) for x in self.dataset["subword_starts"]])
-            subword_lengths = torch.cat([torch.tensor(x, dtype=torch.int32).to(self.device) for x in self.dataset["subword_lengths"]])
+                for i in range(batch_size):
+                    # Convert to numpy arrays once at the start
+                    ids = np.array(examples["input_ids"][i])
+                    pre_token_boundaries = np.array(examples["pre_token_boundaries"][i])
+                    subword_starts = np.array(examples["subword_starts"][i])
+                    subword_lengths = np.array(examples["subword_lengths"][i])
+                    
+                    # Create delete mask
+                    delete_mask = np.zeros(len(ids), dtype=bool)
+                    
+                    # Get valid starts directly from boolean array
+                    starts = np.where(subword_starts)[0]
+                    for start in starts:
+                        length = subword_lengths[start]
+                        # Use numpy slicing instead of converting to list
+                        subword_span = tuple(ids[start:start+length])
+                        is_pre_token_start = pre_token_boundaries[start]
+                        subword_span = (is_pre_token_start, subword_span)
+                        
+                        if subword_span not in subword_spans_to_ids:
+                            continue
+                            
+                        new_id = subword_spans_to_ids[subword_span]
+                        ids[start] = new_id
+                        delete_mask[start+1:start+length] = True
 
-            delete_mask = torch.zeros(len(ids), dtype=torch.bool)
+                    # Apply mask in one operation
+                    ids_list[i] = ids[~delete_mask]
+                    pre_token_boundaries_list[i] = pre_token_boundaries[~delete_mask]
 
-            for i in tqdm(torch.where(subword_starts)[0], desc="Applying merges to subwords that have been added to the vocabulary"):
-                length = subword_lengths[i]
-                subword_span = tuple(ids[i:i+length].tolist())
-                is_pre_token_start = pre_token_boundaries[i].item()
-                subword_span = (is_pre_token_start, subword_span)
-                if not subword_span in subword_spans_to_ids:
-                    continue
-                new_id = subword_spans_to_ids[subword_span]
-                ids[i] = new_id
-                delete_mask[i+1:i+length] = True
+                examples["input_ids"] = ids_list
+                examples["pre_token_boundaries"] = pre_token_boundaries_list
+                return examples
+            
+            merged_dataset = self.dataset.map(
+                merge_ids,
+                batched=True,
+                num_proc= min(12, os.cpu_count()),
+                desc="Merging subwords in dataset",
+                remove_columns=[col for col in self.dataset.column_names if col not in ["input_ids", "pre_token_boundaries"]],
+            )
 
-            old_length = len(ids)
-            ids = ids[~delete_mask]
-            pre_token_boundaries = pre_token_boundaries[~delete_mask]
-            self.logger.info(f'Shortened data from: {old_length} to new length: {len(ids)}')
+            ids = torch.cat([torch.tensor(x, dtype=torch.int64).to(self.device) for x in merged_dataset["input_ids"]])
+            pre_token_boundaries = torch.cat([torch.tensor(x, dtype=torch.bool).to(self.device) for x in merged_dataset["pre_token_boundaries"]])
+            new_length = len(ids)
 
-        logger.info("Replacing continuation tokens with wordpiece counterparts")
-        ids[~pre_token_boundaries] = ids[~pre_token_boundaries].apply_(
+            self.logger.info(f'Shortened data from: {old_length} to new length: {new_length}')
+            self.logger.info("Creating vector ID to apply merges and calculate frequencies...")
+
+        # Move to CPU for apply_ operation
+        ids_cpu = ids.cpu()
+        ids_cpu[~pre_token_boundaries.cpu()] = ids_cpu[~pre_token_boundaries.cpu()].apply_(
             lambda t: (self.vocab["##" + self.inverse_vocab[t]] if not self.inverse_vocab[t].startswith("##") else t)
         )
+        ids = ids_cpu.to(self.device)
         logger.info("Vectors prepared for BPE training.")
         
         num_ids = len(self.vocab)
         pbar = tqdm(total=final_vocab_size, desc="Generating IDs")
         while num_ids <  final_vocab_size:
             pbar.update(num_ids - pbar.n)
-            # Get pair counts - could do this more efficiently by only updating
-            # where we merge later
+            # Get pair counts
+            # TODO: We don't need to recalculate after every merge, could just update the locations where the merge occurs.
             pairs =  ids * (num_ids + 1) + ids.roll(1)
             pairs[pre_token_boundaries] = -1
             unique_pairs, inverse_indices = torch.unique(pairs, return_inverse=True)
@@ -938,6 +987,15 @@ def create_thresholdtokenizer(
             dataset = dataset.select(range(num_training_rows))
     logger.info(f"Using {len(dataset)} rows for training")
 
+    if 'pre_token_boundaries' not in dataset.column_names:
+        logger.info("Adding pre-tokenization boundaries to the dataset")
+        dataset = dataset.map(
+            AddPreTokenizationBoundaries(byte_tokenizer),
+            batched=True,
+            desc="Adding pre-tokenization boundaries",
+            num_proc=min(os.cpu_count(), 8),
+        )
+
     logger.info("⚙️ Creating the InfoTokenizer Trainer")
     trainer = ThresholdTokenizerTrainer(
         dataset=dataset,
@@ -984,37 +1042,36 @@ def create_bytespantokenizer(
         ),
     ],
     measure: Annotated[str, typer.Argument(help="Measure to use for training the subword tokenizer (e.g. Entropy)")],
-    vocab_size : Annotated[
-        int,
-        typer.Argument(help="Vocabulary size for the tokenizer."),
-    ],
     corpus: Annotated[
         str,
         typer.Argument(
             help=f"Corpus to use for training the subword tokenizer. Supported corpora: {SUPPORTED_CORPORA}"
         ),
     ] = FINEWEBEDU_REPO_ID,
-    fixed_frequency_cutoff: Annotated[int | None, typer.Option(help="Fixed frequency cutoff for subwords.")] = None,
-    percentage_cutoff: Annotated[float | None, typer.Option(help="Percentage of discovered subwords to keep (out of final vocab size).")] = None,
+    proportion_bytespan: Annotated[float | None, typer.Option(help="If set, the bytespan subwords will only contribute this proportion of the final vocabulary (BPE will be used for the rest).")] = None,
     threshold_percentile: Annotated[int | None, typer.Option(help="Percentile threshold for grouping subwords.")] = None,
     num_training_rows: Annotated[int, typer.Option(help="Number of training rows to use.")] = 100000,
+    vocab_sizes: Annotated[
+        list[int], typer.Option(help="Vocabulary sizes for the tokenizer.")
+    ] = DEFAULT_TOKENIZER_SIZES,
 ) -> None:
     if measure == "SpaceProbability":
         measure = "Space Probability"
 
-    if fixed_frequency_cutoff is not None and percentage_cutoff is not None:
-        raise ValueError("Only one of fixed_frequency_cutoff or percentage_cutoff can be specified.")
-    else:
-        frequency_threshold = fixed_frequency_cutoff if fixed_frequency_cutoff is not None else percentage_cutoff
-
     tokenizer_name = (
         f"{model_type}_{measure}_bytespan"
+        + (f"P{proportion_bytespan}".replace('.','-') if proportion_bytespan is not None else "")
+        + (f"T{threshold_percentile}".replace('.','-') if threshold_percentile is not None else "")
     )
     folder_path = Path(TOK_REPO_ID) / tokenizer_name
     api = HfApi()
 
     logger.info(f"💡 Will save the tokenizers locally to to: {folder_path}")
     folder_path.mkdir(parents=True, exist_ok=True)
+
+    # Sort vocab_sizes if not already sorted
+    vocab_sizes.sort()
+    logger.info(f"Using vocab sizes: {vocab_sizes}")
 
     logger.info("⚙️ Loading bytelevel tokenizer and byte LLM data")
     byte_tokenizer = AutoTokenizer.from_pretrained(f"{HF_USERNAME}/{TOK_REPO_ID}", subfolder=BYTELEVEL_TOK_FOLDER)
@@ -1043,33 +1100,34 @@ def create_bytespantokenizer(
         dataset=dataset,
         byte_tokenizer=byte_tokenizer,
         measure=measure,
-        frequency_threshold=frequency_threshold,
+        proportion_bytespan=proportion_bytespan,
         threshold_percentile=threshold_percentile,
         logger=logger,
     )
 
-    logger.info(f"⚙️ Training the ByteSpan Tokenizer with vocab size: {vocab_size}")
-    folder_path_specific = folder_path / str(vocab_size)
-    folder_path_specific.mkdir(parents=True, exist_ok=True)
-    trainer.train(final_vocab_size=vocab_size)
-    tokenizer = trainer.create_tokenizer()
-    tokenizer.save_pretrained(str(folder_path_specific))
-    trainer.save_vocab_and_stats(folder_path_specific)
-    logger.info(f"✅ Successfully trained a tokenizer with a vocabulary size of {vocab_size}")
+    for vocab_size in vocab_sizes:
+        logger.info(f"⚙️ Training the ByteSpan Tokenizer with vocab size: {vocab_size}")
+        folder_path_specific = folder_path / str(vocab_size)
+        folder_path_specific.mkdir(parents=True, exist_ok=True)
+        trainer.train(final_vocab_size=vocab_size)
+        tokenizer = trainer.create_tokenizer()
+        tokenizer.save_pretrained(str(folder_path_specific))
+        trainer.save_vocab_and_stats(folder_path_specific)
+        logger.info(f"✅ Successfully trained a tokenizer with a vocabulary size of {vocab_size}")
 
-    repo_id = f"{HF_USERNAME}/{folder_path.parent}"
-    logger.info(f"🆙 Uploading the tokenizer to {repo_id} on the HF Hub")
+        repo_id = f"{HF_USERNAME}/{folder_path.parent}"
+        logger.info(f"🆙 Uploading the tokenizer to {repo_id} on the HF Hub")
 
-    path_in_repo = folder_path.name + f"_{vocab_size}"
-    api.create_repo(repo_id, exist_ok=True)
-    api.upload_folder(
-        folder_path=folder_path_specific,
-        repo_id=repo_id,
-        path_in_repo=path_in_repo,
-        repo_type="model",
-        revision="main",
-    )
-    logger.info(f"✅ Successfully uploaded the tokenizer to {repo_id}")
+        path_in_repo = folder_path.name + f"_{vocab_size}"
+        api.create_repo(repo_id, exist_ok=True)
+        api.upload_folder(
+            folder_path=folder_path_specific,
+            repo_id=repo_id,
+            path_in_repo=path_in_repo,
+            repo_type="model",
+            revision="main",
+        )
+        logger.info(f"✅ Successfully uploaded the tokenizer to {repo_id}")
 
     shutil.rmtree(folder_path, ignore_errors=True)
 

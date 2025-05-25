@@ -204,6 +204,7 @@ def tokenize_and_subset_commoncorpus(
                 text_key="text",
                 id_key="id",
                 # limit=100,
+                glob_pattern="*/*.parquet",
             ),
             DocumentTokenizer(pretrained_model_name_or_path=tok_path, subfolder=subfolder, batch_size=batch_size),
             ParquetWriter(
