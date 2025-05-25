@@ -23,6 +23,7 @@ from commands.configs import (
     FINEWEBEDU_REPO_ID,
     HF_USERNAME,
     TOK_REPO_ID,
+    BYTE_DATA_NGRAM_EXTRACTION,
 )
 from commands.extract import SUPPORTED_CORPORA, SUPPORTED_MODELS
 from commands.data import AddPreTokenizationBoundaries
@@ -84,10 +85,10 @@ class FrequencyTokenizerTrainer:
         # Create ids and signal tensors for processing
         self.logger.info("Creating ids and signal tensors...")
         self.ids = torch.cat(
-            torch.tensor(x, dtype=torch.int64).to(self.device) for x in dataset["input_ids"]
+            [torch.tensor(x, dtype=torch.int64).to(self.device) for x in dataset["input_ids"]]
         )
         self.pre_token_boundaries = torch.cat(
-            torch.tensor(x, dtype=torch.bool).to(self.device) for x in dataset["pre_token_boundaries"]
+            [torch.tensor(x, dtype=torch.bool).to(self.device) for x in dataset["pre_token_boundaries"]]
         )
 
         self.logger.info("Ids tensor created.")
@@ -146,6 +147,7 @@ class FrequencyTokenizerTrainer:
         # Apply the merge everywhere
         self.ids[merge_positions.roll(-1)] = new_id
         self.ids = self.ids[~merge_positions]
+        self.pre_token_boundaries = self.pre_token_boundaries[~merge_positions]
 
         self.logger.debug(f"Merge created: {left_token} + {right_token} -> {joined} with {num_merges} merged tokens.")
 
@@ -849,12 +851,6 @@ class ByteCurveTokenizerTrainer:
 
 @app.command()
 def create_frequencytokenizer(
-    model_type: Annotated[
-        str,
-        typer.Argument(
-            help=f"Type of model whose predictions are used to train subwords. Supported models: {SUPPORTED_MODELS}"
-        ),
-    ],
     merge_type: Annotated[
         str,
         typer.Argument(help=f"Type of merge to perform. Supported options: {FrequencyTokenizerTrainer.VALID_MERGE_TYPES}"),
@@ -884,9 +880,9 @@ def create_frequencytokenizer(
     vocab_sizes.sort()
     logger.info(f"Using vocab sizes: {vocab_sizes}")
 
-    logger.info("⚙️ Loading bytelevel tokenizer and byte LLM data")
+    logger.info("⚙️ Loading bytelevel tokenizer and bytelevel data")
     byte_tokenizer = AutoTokenizer.from_pretrained(f"{HF_USERNAME}/{TOK_REPO_ID}", subfolder=BYTELEVEL_TOK_FOLDER)
-    dataset = load_dataset(f"{HF_USERNAME}/{corpus}", name=BYTE_LLM_PREDICTION_DATA, split=model_type)
+    dataset = load_dataset(f"{HF_USERNAME}/{corpus}", name=BYTE_DATA_NGRAM_EXTRACTION, split="train")
 
     # Limit the dataset to the specified number of rows
     if num_training_rows > 0:
