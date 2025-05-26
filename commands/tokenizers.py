@@ -552,7 +552,7 @@ class ByteCurveTokenizerTrainer:
         signal_values = signal_values[~np.isnan(signal_values)]
         signal_values = signal_values[signal_values != 0]
         signal_values = np.sort(signal_values)
-        signal_values = np.percentile(signal_values, self.threshold_percentile)
+        return np.percentile(signal_values, self.threshold_percentile)
 
     def find_subword_boundaries(self, examples):
 
