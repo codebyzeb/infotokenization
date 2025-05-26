@@ -897,6 +897,15 @@ def create_frequencytokenizer(
             dataset = dataset.select(range(num_training_rows))
     logger.info(f"Using {len(dataset)} rows for training")
 
+    if 'pre_token_boundaries' not in dataset.column_names:
+        logger.info("Adding pre-tokenization boundaries to the dataset")
+        dataset = dataset.map(
+            AddPreTokenizationBoundaries(byte_tokenizer),
+            batched=True,
+            desc="Adding pre-tokenization boundaries",
+            num_proc=min(os.cpu_count(), 8),
+        )
+
     logger.info("⚙️ Creating the InfoTokenizer Trainer")
     trainer = FrequencyTokenizerTrainer(
         dataset=dataset,
