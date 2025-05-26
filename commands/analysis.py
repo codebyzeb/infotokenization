@@ -240,6 +240,15 @@ def get_tokenizer_statistics_common_corpus(
     byte_data = load_dataset(DATA_REPO, BYTE_DATA_TOKENIZER_EVALUATION, split="train")
     languages = LANGUAGES
 
+    if 'pre_token_boundaries' not in byte_data.column_names:
+        print("Adding pre-tokenization boundaries to the dataset")
+        byte_data = byte_data.map(
+            AddPreTokenizationBoundaries(byte_tokenizer),
+            batched=True,
+            desc="Adding pre-tokenization boundaries",
+            num_proc=min(os.cpu_count(), 8),
+        )
+
     files = list_repo_files(TOKENIZER_REPO)
     folders = set()
     for file in files:

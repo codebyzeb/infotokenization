@@ -35,7 +35,7 @@ ADD_PREFIX_SPACE = True  # Note that we will add a prefix_space to the pre_token
 PAD_TOKEN = "<|padding|>"
 EOS_TOKEN = "<|endoftext|>"
 UNK_TOKEN = "<|unk|>"
-DEFAULT_TOKENIZER_SIZES = [8_064, 16_000, 32_000, 64_000, 128_000, 256_000]
+DEFAULT_TOKENIZER_SIZES = [8_064, 16_000, 32_000, 64_000, 128_000]
 
 # Create logger
 logger = get_logger("tokenizer")
@@ -333,7 +333,7 @@ class ThresholdTokenizerTrainer:
         self.vocab = self.base_vocab.copy()
         self.merges = []
         vocab_size = len(self.vocab)
-        discovered = self.segment_counts.items()
+        discovered = sorted(self.segment_counts.items(), key=lambda x: x[1], reverse=True)
         for token_ref, count in discovered:
             if count < self.frequency_threshold:
                 break  # Can break here because we've sorted the segments by frequency
@@ -530,7 +530,8 @@ class ByteCurveTokenizerTrainer:
             self.logger.info(f"Getting threshold value from the dataset...")
             self.threshold = self.get_threshold()
             self.logger.info(f"Threshold value: {self.threshold}")
-        self.threshold = None
+        else:
+            self.threshold = None
 
         self.subword_frequencies = None
         self.subword_spans_to_tokens = {}
@@ -697,6 +698,9 @@ class ByteCurveTokenizerTrainer:
             self.logger.info("Filtering discovered tokens by frequency.")
             self.vocab = {k: v for k, v in self.vocab.items() if v < final_vocab_size}
             self.inverse_vocab = {v: k for k, v in self.vocab.items()}
+        elif self.proportion_bytespan == 1.0:
+            self.logger.error("Proportion bytespan set to 1.0, but not enough subwords found to reach final vocab size.")
+            raise RuntimeError("Not enough subwords found to reach final vocab size.")
         else:
             self.logger.info(f"Running BPE to learn remaining subwords.")
             self.bpe(final_vocab_size)
