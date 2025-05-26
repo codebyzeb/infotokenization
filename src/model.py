@@ -7,7 +7,7 @@ from transformers.models.llama.configuration_llama import LlamaConfig
 from transformers.models.llama.modeling_llama import LlamaForCausalLM
 
 
-def get_model(name: str, tok: PreTrainedTokenizerFast) -> tuple[LlamaForCausalLM, PretrainedConfig]:
+def get_model(name: str, tok: PreTrainedTokenizerFast, seed: int) -> tuple[LlamaForCausalLM, PretrainedConfig]:
     # Check if flash attention is available, otherwise use sdpa
 
     attn_implementation = "flash_attention_2" if find_spec("flash_attn") is not None else "sdpa"
@@ -22,7 +22,7 @@ def get_model(name: str, tok: PreTrainedTokenizerFast) -> tuple[LlamaForCausalLM
         "max_position_embeddings": 2048,
         "_attn_implementation": attn_implementation,
     }
-    seed_everything(42)
+    seed_everything(seed)
 
     if name.startswith("fw57M"):
         config = LlamaConfig(

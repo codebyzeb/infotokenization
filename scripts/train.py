@@ -33,11 +33,12 @@ def main(cfg: DictConfig) -> None:
 
     # Load tokenizer
     tok_repo_id = f"{HF_USERNAME}/{TOK_REPO_ID}"
+    cfg.tok_name = cfg.tok_name.replace("B", "B2")
     logger.info(f"Loading tokenizer from {tok_repo_id}/{cfg.tok_name}")
     tok = AutoTokenizer.from_pretrained(tok_repo_id, subfolder=cfg.tok_name)
 
     # Load model
-    model, config = get_model(cfg.model, tok)  # type: ignore
+    model, config = get_model(cfg.model, tok, cfg.seed)  # type: ignore
     logger.info(f"Model config:\n{model.config.to_json_string()}")
     logger.info(f"Attention implementation: {model.config._attn_implementation}")
     logger.info(f"Memory footprint: {model.get_memory_footprint() / 1e6:.2f} MB")
