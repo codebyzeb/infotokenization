@@ -484,6 +484,7 @@ class ByteCurveTokenizerTrainer:
         measure: str,
         proportion_bytespan: int | float | None = None,
         threshold_percentile: int | None = None,
+        balance_by_language: bool = False,
         logger: logging.Logger | None = None,
     ) -> None:
         """Class for training a byte-curve tokenizer using information measures derived from a byte-level LM.
@@ -496,6 +497,7 @@ class ByteCurveTokenizerTrainer:
             threshold_percentile (int, optional): Besides curves, also include tokens in a span if they fall under the threshold,
                 calculated as a percentile of the signal values. This is useful for very predictable tokens that might cause the curve
                 to slightly increase at low signal values.
+            balance_by_language (bool, optional): If True, will balance the vocabulary by language.
             logger (logging.Logger, optional): Logger for debugging and information.
         """
         if measure not in dataset.column_names:
@@ -534,6 +536,7 @@ class ByteCurveTokenizerTrainer:
             self.threshold = None
 
         self.subword_frequencies = None
+        self.balance_by_language = balance_by_language
         self.subword_spans_to_tokens = {}
     
     def get_threshold(self) -> float:
@@ -643,11 +646,20 @@ class ByteCurveTokenizerTrainer:
                 if not is_pre_token_start:
                     token = '##' + token
                 if token and not token in self.vocab:
-                    if token in subword_frequencies:
-                        subword_frequencies[token] += 1
+                    if self.balance_by_language:
+                        language = example['language']
+                        if language not in subword_frequencies:
+                            subword_frequencies[language] = {}
+                        if token in subword_frequencies[language]:
+                            subword_frequencies[language][token] += 1
+                        else:
+                            subword_frequencies[language][token] = 1
                     else:
-                        subword_frequencies[token] = 1
-                    subword_spans_to_tokens[(is_pre_token_start, tuple(id_span))] = token
+                        if token in subword_frequencies:
+                            subword_frequencies[token] += 1
+                        else:
+                            subword_frequencies[token] = 1
+                        subword_spans_to_tokens[(is_pre_token_start, tuple(id_span))] = token
 
         return subword_frequencies, subword_spans_to_tokens
 
@@ -672,7 +684,15 @@ class ByteCurveTokenizerTrainer:
                 logger.info(f'Found {len(self.subword_frequencies)} unique subwords in dataset.')
             else:
                 self.logger.info('Using existing subword frequencies and spans.')
-            sorted_subword_frequencies = sorted(self.subword_frequencies.items(), key=lambda x: x[1], reverse=True)
+
+            if self.balance_by_language:
+                sorted_subword_frequencies = {
+                    language : sorted(freqs.items(), key=lambda x: x[1], reverse=True)
+                    for language, freqs in self.subword_frequencies.items()
+                }
+            else:
+                sorted_subword_frequencies = sorted(self.subword_frequencies.items(), key=lambda x: x[1], reverse=True)
+
             if self.proportion_bytespan is None:
                 self.logger.info("Proportion bytespan not provided, keeping all discovered vocabulary items.")
             else:
@@ -680,15 +700,37 @@ class ByteCurveTokenizerTrainer:
                 logger.info(f'Using percentage threshold, keeping most frequent subwords to reach {100*self.proportion_bytespan}% of target vocab size.')
                 if self.proportion_bytespan < 0 or self.proportion_bytespan > 1:
                     raise ValueError("Frequency threshold must be between 0 and 1.")
-                sorted_subword_frequencies = dict(sorted_subword_frequencies[:int(total_items)])
+                if self.balance_by_language:
+                    sorted_subword_frequencies = {}
+                    # Round-robin add subwords from each language until total_items is reached
+                    # to ensure vocabulary is balanced across languages
+                    i = 0
+                    while len(sorted_subword_frequencies) < total_items:
+                        for language, freqs in sorted_subword_frequencies.items():
+                            if i < len(freqs):
+                                token, freq = freqs[i]
+                                if token not in self.vocab:
+                                    sorted_subword_frequencies[token] = freq
+                            if len(sorted_subword_frequencies) >= total_items:
+                                break
+                        i += 1
+                else:
+                    sorted_subword_frequencies = sorted_subword_frequencies[:int(total_items)]
                 logger.info(f'Filtered subwords to {len(sorted_subword_frequencies)} most frequent items.')
 
             self.logger.info(f"Adding {len(sorted_subword_frequencies)} subwords to the initial vocabulary.")
-            for key in sorted_subword_frequencies.keys():
-                if not key in self.vocab:
-                    self.vocab[key] = len(self.vocab)
-                else:
-                    raise RuntimeError(f"Error: subword '{key}' already exists in the vocabulary.")
+            if self.balance_by_language:
+                while len(self.vocab) < final_vocab_size and len(sorted_subword_frequencies) > 0:
+                    for language, freqs in sorted_subword_frequencies.items():
+                        if len(freqs) == 0:
+                            continue
+                        token, freq = freqs.pop(0)
+                        if token not in self.vocab:
+                            self.vocab[token] = len(self.vocab)
+            else:
+                for key in sorted_subword_frequencies.keys():
+                    if not key in self.vocab:
+                        self.vocab[key] = len(self.vocab)
             self.inverse_vocab = {v: k for k, v in self.vocab.items()}
             assert len(self.vocab) == len(self.inverse_vocab), "Vocabulary and inverse vocabulary must have the same size."
             self.logger.info(f"Updated vocab size: {len(self.vocab)}")
@@ -1059,6 +1101,7 @@ def create_bytespantokenizer(
     ] = FINEWEBEDU_REPO_ID,
     proportion_bytespan: Annotated[float | None, typer.Option(help="If set, the bytespan subwords will only contribute this proportion of the final vocabulary (BPE will be used for the rest).")] = None,
     threshold_percentile: Annotated[int | None, typer.Option(help="Percentile threshold for grouping subwords.")] = None,
+    balance_by_language: Annotated[bool, typer.Option(help="If True, will balance the vocabulary by language.")] = False,
     num_training_rows: Annotated[int, typer.Option(help="Number of training rows to use.")] = 100000,
     vocab_sizes: Annotated[
         list[int], typer.Option(help="Vocabulary sizes for the tokenizer.")
@@ -1071,6 +1114,7 @@ def create_bytespantokenizer(
         f"{model_type}_{measure}_bytespan"
         + (f"P{proportion_bytespan}".replace('.','-') if proportion_bytespan is not None else "")
         + (f"T{threshold_percentile}".replace('.','-') if threshold_percentile is not None else "")
+        + ("B" if balance_by_language else "")
     )
     folder_path = Path(TOK_REPO_ID) / tokenizer_name
     api = HfApi()
@@ -1111,6 +1155,7 @@ def create_bytespantokenizer(
         measure=measure,
         proportion_bytespan=proportion_bytespan,
         threshold_percentile=threshold_percentile,
+        balance_by_language=balance_by_language,
         logger=logger,
     )
 
