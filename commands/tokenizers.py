@@ -701,25 +701,29 @@ class ByteCurveTokenizerTrainer:
                 if self.proportion_bytespan < 0 or self.proportion_bytespan > 1:
                     raise ValueError("Frequency threshold must be between 0 and 1.")
                 if self.balance_by_language:
-                    sorted_subword_frequencies = {}
+                    logger.info(f'Using round-robin selection to balance subwords across languages.')
+                    new_sorted_subword_frequencies = {}
                     # Round-robin add subwords from each language until total_items is reached
                     # to ensure vocabulary is balanced across languages
                     i = 0
-                    while len(sorted_subword_frequencies) < total_items:
+                    while len(new_sorted_subword_frequencies) < total_items:
                         for language, freqs in sorted_subword_frequencies.items():
                             if i < len(freqs):
                                 token, freq = freqs[i]
                                 if token not in self.vocab:
-                                    sorted_subword_frequencies[token] = freq
-                            if len(sorted_subword_frequencies) >= total_items:
+                                    new_sorted_subword_frequencies[token] = freq
+                            if len(new_sorted_subword_frequencies) >= total_items:
                                 break
                         i += 1
+                    sorted_subword_frequencies = new_sorted_subword_frequencies
                 else:
-                    sorted_subword_frequencies = sorted_subword_frequencies[:int(total_items)]
+                    sorted_subword_frequencies = dict(sorted_subword_frequencies[:int(total_items)])
                 logger.info(f'Filtered subwords to {len(sorted_subword_frequencies)} most frequent items.')
 
             self.logger.info(f"Adding {len(sorted_subword_frequencies)} subwords to the initial vocabulary.")
-            if self.balance_by_language:
+            # If we didn't round-robin above, we do it here.
+            if self.balance_by_language and self.proportion_bytespan is None:
+                logger.info(f'Using round-robin selection to balance subwords across languages.')
                 while len(self.vocab) < final_vocab_size and len(sorted_subword_frequencies) > 0:
                     for language, freqs in sorted_subword_frequencies.items():
                         if len(freqs) == 0:
