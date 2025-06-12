@@ -913,9 +913,9 @@ def create_frequencytokenizer(
         list[int], typer.Option(help="Vocabulary sizes for the tokenizer.")
     ] = DEFAULT_TOKENIZER_SIZES,
 ) -> None:
-    tokenizer_name = merge_type
+    tokenizer_name = 'BPE' if merge_type == 'frequency' else ('MI' if merge_type == 'mutual-information' else merge_type)
     if corpus == COMMONCORPUS_REPO_ID:
-        tokenizer_name += "multi"
+        tokenizer_name = "Multi" + tokenizer_name
     folder_path = Path(TOK_REPO_ID) / tokenizer_name
     api = HfApi()
 
@@ -1010,8 +1010,8 @@ def create_thresholdtokenizer(
         measure = "Space Probability"
 
     tokenizer_name = (
-        f"{model_type}_{measure}_threshold"
-        + ("L" if include_left_byte else "")
+        f"ByteSpan{measure}GlobalIncrement"
+        + ("LeftShift" if include_left_byte else "")
     )
     folder_path = Path(TOK_REPO_ID) / tokenizer_name
     api = HfApi()
@@ -1108,11 +1108,18 @@ def create_bytespantokenizer(
         measure = "Space Probability"
 
     tokenizer_name = (
-        f"{model_type}_{measure}_bytespan"
-        + (f"P{proportion_bytespan}".replace('.','-') if proportion_bytespan is not None else "")
-        + (f"T{threshold_percentile}".replace('.','-') if threshold_percentile is not None else "")
-        + ("B" if balance_by_language else "")
+        f"ByteSpan{measure}"
+        + ("Monotonic" if threshold_percentile is None else "Combined")
+        + (f"{threshold_percentile}".replace('.','-') if threshold_percentile is not None and threshold_percentile != 30 else "") # Log percentile if its not default of 30 
+        + ("Frequency" if proportion_bytespan is None else "Seeding")
+        + (f"{proportion_bytespan}".replace('.','-') if proportion_bytespan is not None and proportion_bytespan != 0.5 else "")
+        + ("Balanced" if balance_by_language else "")
     )
+    if proportion_bytespan is not None and float(proportion_bytespan) == 0.0:
+        logger.warning("Proportion bytespan is set to 0.0, which means only BPE will be used with a WordPiece-style vocabulary.")
+        tokenizer_name = "BPEWP"
+    if corpus == COMMONCORPUS_REPO_ID:
+        tokenizer_name = "Multi" + tokenizer_name
     folder_path = Path(TOK_REPO_ID) / tokenizer_name
     api = HfApi()
 
