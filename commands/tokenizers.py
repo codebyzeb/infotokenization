@@ -673,7 +673,7 @@ class ByteCurveTokenizerTrainer:
                 self.dataset = self.dataset.map(
                     self.find_subword_boundaries,
                     batched=True,
-                    num_proc=min(12, os.cpu_count()),
+                    num_proc=min(8, os.cpu_count()-1),
                     desc="Finding subword boundaries"
                 )
                 self.subword_frequencies, self.subword_spans_to_tokens = self.create_vocab_from_spans()
@@ -804,7 +804,7 @@ class ByteCurveTokenizerTrainer:
             merged_dataset = self.dataset.map(
                 merge_ids,
                 batched=True,
-                num_proc= min(12, os.cpu_count()),
+                num_proc= min(8, os.cpu_count()-1),
                 desc="Merging subwords in dataset",
                 remove_columns=[col for col in self.dataset.column_names if col not in ["input_ids", "pre_token_boundaries"]],
             )
@@ -945,7 +945,7 @@ def create_frequencytokenizer(
             AddPreTokenizationBoundaries(byte_tokenizer),
             batched=True,
             desc="Adding pre-tokenization boundaries",
-            num_proc=min(os.cpu_count(), 8),
+            num_proc=min(os.cpu_count()-1, 8),
         )
 
     logger.info("⚙️ Creating the InfoTokenizer Trainer")
@@ -1042,7 +1042,7 @@ def create_thresholdtokenizer(
             AddPreTokenizationBoundaries(byte_tokenizer),
             batched=True,
             desc="Adding pre-tokenization boundaries",
-            num_proc=min(os.cpu_count(), 8),
+            num_proc=min(os.cpu_count()-1, 8),
         )
 
     logger.info("⚙️ Creating the InfoTokenizer Trainer")
@@ -1142,7 +1142,7 @@ def create_bytespantokenizer(
             AddPreTokenizationBoundaries(byte_tokenizer),
             batched=True,
             desc="Adding pre-tokenization boundaries",
-            num_proc=min(os.cpu_count(), 8),
+            num_proc=min(os.cpu_count()-1, 8),
         )
 
     logger.info("⚙️ Creating the InfoTokenizer Trainer")

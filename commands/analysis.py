@@ -13,7 +13,6 @@ from huggingface_hub import list_repo_files
 from rich import print
 from tokenizers import models
 from transformers import AutoTokenizer  # type: ignore
-from morphscore.morphscore import get_morphscore
 
 from commands.configs import (
     BYTE_DATA_TOKENIZER_EVALUATION,
@@ -45,7 +44,7 @@ class ExtractTokenizerStats:
         else:
             raise ValueError(f"Unsupported tokenizer type: {type(self.tokenizer.backend_tokenizer.model)}")
 
-    def __call__(self, batch):
+    def __call__(self, batch):        
         byte_ids = batch["input_ids"]
         pre_token_boundaries = batch["pre_token_boundaries"]
 
@@ -113,6 +112,10 @@ def get_tokenizer_statistics_fineweb(
     ),
     recalculate_if_exists: Annotated[bool, typer.Option(help="Recalculate if the file already exists")] = False,
 ) -> None:
+
+    # Import here in case the morphscore package is not installed
+    from morphscore.morphscore import get_morphscore
+
     TOKENIZER_REPO = f"{HF_USERNAME}/{TOK_REPO_ID}"
     DATA_REPO = f"{HF_USERNAME}/{FINEWEBEDU_REPO_ID}"
 
@@ -229,6 +232,10 @@ def get_tokenizer_statistics_common_corpus(
 ) -> None:
     TOKENIZER_REPO = f"{HF_USERNAME}/{TOK_REPO_ID}"
     DATA_REPO = f"{HF_USERNAME}/{COMMONCORPUS_REPO_ID}"
+
+    # Import here in case the morphscore package is not installed
+    from morphscore.morphscore import get_morphscore
+
 
     print(f"⚙️ Starting analysis of tokenizers in {TOKENIZER_REPO} directory")
 

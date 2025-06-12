@@ -23,7 +23,7 @@
 #SBATCH --gres=gpu:4
 
 #! How much wallclock time will be required?
-#SBATCH --time=15:00:00
+#SBATCH --time=20:00:00
 #! What types of email messages do you wish to receive?
 #SBATCH --mail-type=ALL
 #! Uncomment this to prevent the job from being requeued (e.g. if
@@ -95,28 +95,23 @@ source .env # huggingface token
 uv sync
 
 model=fw57M-tied
-#tokenizer=frequency_64000
-#tokenizer=fw57M_Surprisal_frequency-mean-post-merge_64000
-#tokenizer=fw57M_Surprisal_min-mean-post-merge_64000
-tokenizer=fw57M_Entropy_threshold_32000
-#tokenizer=frequency_32000
+seed=42
+tokenizer=frequency_64000
 
 # Avoid fragmentation
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
-uv run cli.py data finewebedu-download $tokenizer
-
 srun uv run scripts/train.py \
-    +callbacks.grad_accum.scheduling="{0: 16}" \
-    data.batch_size=8 \
-    data.eval_batch_size=16 \
+    +callbacks.grad_accum.scheduling="{0: 2}" \
+    data.batch_size=16 \
+    data.eval_batch_size=64 \
     model=$model \
-    pwd=/home/zg258/projects/infotokenization \
+    pwd=/home/zg258/rds/hpc-work/infotokenization \
     torch_compile=true \
-    trainer.devices=1 \
+    trainer.devices=4 \
     data.num_workers=12 \
-    hydra.run.dir=outputs/$model/$tokenizer \
+    hydra.run.dir=outputs/$model/$seed/$tokenizer \
     run_folder=. \
     resume_from_checkpoint=.checkpoints/last.ckpt \
     tok_name=$tokenizer \
-    > "training_$tokenizer.log" 2>&1 &
+    seed=$seed \
