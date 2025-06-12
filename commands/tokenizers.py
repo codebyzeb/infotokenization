@@ -240,7 +240,6 @@ class ThresholdTokenizerTrainer:
         byte_tokenizer: PreTrainedTokenizerFast,
         measure: str,
         include_left_byte: bool = False,
-        keep_intermediate_vocab: bool = True,
         frequency_threshold: int | None = None,
         logger: logging.Logger | None = None,
     ) -> None:
@@ -251,7 +250,6 @@ class ThresholdTokenizerTrainer:
             byte_tokenizer (ByteLevelBPETokenizer): The byte-level tokenizer to use for the initial vocabulary.
             measure (str): The information measure to use ('Entropy', 'Surprisal', etc.).
             include_left_byte (bool, optional): Whether to include the left byte in the vocabulary.
-            keep_intermediate_vocab (bool, optional): Whether to keep intermediate vocabularies during training.
             frequency_threshold (int, optional): Frequency threshold for tokens to be included in the vocabulary.
             logger (logging.Logger, optional): Logger for debugging and information.
         """
@@ -260,7 +258,6 @@ class ThresholdTokenizerTrainer:
 
         self.byte_tokenizer = byte_tokenizer
         self.include_left_byte = include_left_byte
-        self.keep_intermediate_vocab = keep_intermediate_vocab
         self.frequency_threshold = frequency_threshold
         self.logger = logger if logger else get_logger("tokenizer")
 
@@ -384,14 +381,13 @@ class ThresholdTokenizerTrainer:
 
         self.segment_counts[token_ref] += 1
 
-        if not self.keep_intermediate_vocab:
-            # Decrease counts for the tokens we merged with
-            if left_boundary != min_idx:
-                prev_token_ref = (bool(is_start), tuple(self.ids[left_boundary:min_idx].tolist()))
-                self.segment_counts[prev_token_ref] = max(0, self.segment_counts[prev_token_ref] - 1)
-            if right_boundary != min_idx:
-                next_token_ref = (False, tuple(self.ids[min_idx + 1 : right_boundary + 1].tolist()))
-                self.segment_counts[next_token_ref] = max(0, self.segment_counts[next_token_ref] - 1)
+        # Decrease counts for the tokens we merged with
+        if left_boundary != min_idx:
+            prev_token_ref = (bool(is_start), tuple(self.ids[left_boundary:min_idx].tolist()))
+            self.segment_counts[prev_token_ref] = max(0, self.segment_counts[prev_token_ref] - 1)
+        if right_boundary != min_idx:
+            next_token_ref = (False, tuple(self.ids[min_idx + 1 : right_boundary + 1].tolist()))
+            self.segment_counts[next_token_ref] = max(0, self.segment_counts[next_token_ref] - 1)
 
     def train(self, final_vocab_size):
         # Initialize tqdm progress bar
@@ -1003,7 +999,6 @@ def create_thresholdtokenizer(
             help=f"Corpus to use for training the subword tokenizer. Supported corpora: {SUPPORTED_CORPORA}"
         ),
     ] = FINEWEBEDU_REPO_ID,
-    keep_intermediate_vocab: Annotated[bool, typer.Option(help="If True, keep intermediate vocabularies.")] = True,
     include_left_byte: Annotated[bool, typer.Option(help="If True, include left byte in merges.")] = False,
     frequency_threshold: Annotated[int, typer.Option(help="Frequency threshold for merging tokens.")] = 20,
     num_training_rows: Annotated[int, typer.Option(help="Number of training rows to use.")] = 100000,
@@ -1016,7 +1011,6 @@ def create_thresholdtokenizer(
 
     tokenizer_name = (
         f"{model_type}_{measure}_threshold"
-        + ("B" if not keep_intermediate_vocab else "")
         + ("L" if include_left_byte else "")
     )
     folder_path = Path(TOK_REPO_ID) / tokenizer_name
@@ -1057,7 +1051,6 @@ def create_thresholdtokenizer(
         byte_tokenizer=byte_tokenizer,
         measure=measure,
         include_left_byte=include_left_byte,
-        keep_intermediate_vocab=keep_intermediate_vocab,
         frequency_threshold=frequency_threshold,
         logger=logger,
     )
