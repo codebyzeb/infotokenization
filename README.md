@@ -8,7 +8,7 @@ Here we explain how to use the repo.
 First, clone the repo
 
 ```bash
-git clone https://github.com/codebyzeb/infotokenization.git
+git clone https://github.com/codebyzeb/bytespantokenization.git
 ```
 
 Install the [`uv`](https://docs.astral.sh/uv/concepts/projects) environment manager
