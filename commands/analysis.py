@@ -13,6 +13,7 @@ from huggingface_hub import list_repo_files
 from rich import print
 from tokenizers import models
 from transformers import AutoTokenizer  # type: ignore
+from morphscore.morphscore import get_morphscore
 
 from commands.configs import (
     BYTE_DATA_TOKENIZER_EVALUATION,
@@ -197,6 +198,7 @@ def get_tokenizer_statistics_fineweb(
         power = 2.5
         scale = 1 / (1 - power)
         renyi = scale * np.log2(np.sum(np.array(token_probs) ** power)) / np.log2(len(token_probs))
+        morph_score = get_morphscore('english', tokenizer)
 
         new_row = {
             "tokenizer_name": folder,
@@ -208,6 +210,7 @@ def get_tokenizer_statistics_fineweb(
             "split_lengths_distribution": str(split_length_distribution),
             "num_unk": num_unk,
             "renyi_efficiency": renyi,
+            "morph_score": morph_score,
         }
 
         df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True) if df is not None else pd.DataFrame([new_row])
@@ -311,6 +314,12 @@ def get_tokenizer_statistics_common_corpus(
         power = 2.5
         scale = 1 / (1 - power)
         renyi = {lang : scale * np.log2(np.sum(np.array(token_probs[lang]) ** power)) / np.log2(len(token_probs[lang])) for lang in languages}
+        morph_scores = {}
+        for lang in languages:
+            try:
+                morph_scores[lang] = get_morphscore(lang.lower(), tokenizer)
+            except FileNotFoundError:
+                morph_scores[lang] = None
 
         new_row = {
             "tokenizer_name": [folder] * len(languages),
@@ -323,6 +332,7 @@ def get_tokenizer_statistics_common_corpus(
             "unique_tokens": [unique_tokens[lang] for lang in languages],
             "num_unk": [num_unk[lang] for lang in languages],
             "renyi_efficiency": [renyi[lang] for lang in languages],
+            "morph_score": [morph_scores[lang] for lang in languages],
         }
 
         df = pd.concat([df, pd.DataFrame(new_row)], ignore_index=True) if df is not None else pd.DataFrame(new_row)
