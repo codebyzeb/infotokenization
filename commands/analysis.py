@@ -7,12 +7,15 @@ from typing import Annotated
 
 import numpy as np
 import pandas as pd
+import torch
 import typer
 from datasets import Dataset, load_dataset
 from huggingface_hub import list_repo_files
 from rich import print
 from tokenizers import models
-from transformers import AutoTokenizer  # type: ignore
+from transformers import AutoTokenizer, AutoModelForCausalLM
+from tqdm import tqdm
+from torch.utils.data import DataLoader
 
 from commands.configs import (
     BYTE_DATA_TOKENIZER_EVALUATION,
@@ -108,7 +111,7 @@ class ExtractTokenizerStats:
 @app.command()
 def get_tokenizer_statistics_fineweb(
     output_path: Annotated[Path, typer.Option(help="Output path for the tokenizer statistics")] = Path(
-        "tokenizer_stats_fineweb.csv"
+        "eval/tokenizer_stats_fineweb.csv"
     ),
     recalculate_if_exists: Annotated[bool, typer.Option(help="Recalculate if the file already exists")] = False,
 ) -> None:
@@ -228,7 +231,7 @@ def get_tokenizer_statistics_fineweb(
 @app.command()
 def get_tokenizer_statistics_common_corpus(
     output_path: Annotated[Path, typer.Option(help="Output path for the tokenizer statistics")] = Path(
-        "tokenizer_stats_common.csv"
+        "eval/tokenizer_stats_common.csv"
     ),
     recalculate_if_exists: Annotated[bool, typer.Option(help="Recalculate if the file already exists")] = False,
 ) -> None:
@@ -354,6 +357,58 @@ def get_tokenizer_statistics_common_corpus(
     print(f"✅ Successfully extracted tokenizer statistics from {TOKENIZER_REPO} directory")
     print(f"✅ Successfully saved tokenizer statistics to {output_path}")
 
+@app.command()
+def get_bits_per_byte(
+    tokenizer_name: Annotated[str, typer.Argument(help="Name of the tokenizer to use for perplexity calculation")],
+    ) -> None:
+
+    validation_data = load_dataset('data/finewebedu-20B/bytelevel', split='validation')
+    byte_tokenizer = AutoTokenizer.from_pretrained(f"{HF_USERNAME}/{TOK_REPO_ID}", subfolder=BYTELEVEL_TOK_FOLDER)
+    tokenizer = AutoTokenizer.from_pretrained(f"{HF_USERNAME}/{TOK_REPO_ID}", subfolder=tokenizer_name)
+    model = AutoModelForCausalLM.from_pretrained(f"{HF_USERNAME}/fineweb-models", subfolder=tokenizer_name)
+    validation_data = validation_data.select(range(10000)) 
+    ctx_length = model.config.max_position_embeddings
+
+    def re_tokenize(examples):
+        text = [byte_tokenizer.decode(b[:ctx_length], skip_special_tokens=True) for b in examples['input_ids']]
+        inputs = [tokenizer(t, return_tensors='pt', add_special_tokens=True) for t in text]
+        input_ids = [inp['input_ids'].squeeze(0) for inp in inputs]  # shape: (seq_len,)
+        examples['input_ids'] = input_ids
+        pad_token_id = tokenizer.pad_token_id
+        examples['num_tokens'] = [(ids != pad_token_id).sum().item() for ids in input_ids]
+        return examples
+    
+    validation_data = validation_data.map(re_tokenize, batched=True)
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+    validation_data.set_format(type='torch', columns=['input_ids', 'num_tokens'])
+    validation_data = validation_data.with_format(type='torch', device=device)
+
+    bpb_list = []
+    perplexity_list = []
+
+    for batch in tqdm(validation_data):
+        num_tokens = batch['num_tokens'].item()
+        with torch.no_grad():
+            loss = model(input_ids=batch['input_ids'].unsqueeze(0), labels=batch['input_ids'].unsqueeze(0)).loss
+            perplexity = torch.exp(loss)
+            perplexity_list.append(perplexity.item())
+            bpb = (loss / np.log(2)) * (num_tokens / ctx_length) # Convert from loss to bits per byte
+            bpb_list.append(bpb.item())
+
+    print(f"BPB: {np.mean(bpb_list):.4f} ± {np.std(bpb_list):.4f}")
+    print(f"Perplexity: {np.mean(perplexity_list):.4f} ± {np.std(perplexity_list):.4f}")
+    
+    # save bpb values to a CSV file
+    output_path = Path(f"eval/bpb.csv")
+    if output_path.exists():
+        df = pd.read_csv(output_path)
+        df[tokenizer_name] = bpb_list
+        df.to_csv(output_path, index=False)
+    else:
+        df = pd.DataFrame({tokenizer_name: bpb_list})
+        df.to_csv(output_path, index=False)
 
 if __name__ == "__main__":
     app()

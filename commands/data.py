@@ -66,17 +66,24 @@ class AddPreTokenizationBoundaries():
         return examples 
 
 @app.command()
-def finewebedu_tokenize(
+def tokenize(
     tok_path: str = f"{HF_USERNAME}/{TOK_REPO_ID}",
     subfolder: str | None = BYTE_DATA_FOLDER,
-    batch_size: int = 1000
+    batch_size: int = 1000,
+    target_repo_id: str = FINEWEBEDU_REPO_ID
 ) -> None:
-    SOURCE_REPO_ID = "hf://datasets/pietrolesci/finewebedu-20B/data"
-    TARGET_REPO_ID = f"{HF_USERNAME}/{FINEWEBEDU_REPO_ID}"
+    if target_repo_id == FINEWEBEDU_REPO_ID:
+        SOURCE_REPO_ID = "hf://datasets/pietrolesci/finewebedu-20B/data"
+        TARGET_REPO_ID = f"{HF_USERNAME}/{FINEWEBEDU_REPO_ID}"
+    elif target_repo_id == COMMONCORPUS_REPO_ID:
+        SOURCE_REPO_ID = "common-corpus/bytelevel"
+        TARGET_REPO_ID = f"{HF_USERNAME}/{COMMONCORPUS_REPO_ID}"
+    else:
+        raise ValueError(f"Invalid target repo id: {target_repo_id}")
     tok_name = subfolder if subfolder is not None else Path(tok_path).name
 
     print(
-        f"⚙️ Starting FineWebEdu tokenization pipeline\n\t{SOURCE_REPO_ID=}\n\t{TARGET_REPO_ID=}\n"
+        f"⚙️ Starting {target_repo_id} tokenization pipeline\n\t{SOURCE_REPO_ID=}\n\t{TARGET_REPO_ID=}\n"
         f"Tokenizing with {tok_path}{'/' + subfolder if subfolder else ''} and {batch_size=}"
     )
 
@@ -124,11 +131,11 @@ def finewebedu_tokenize(
                 max_file_size=2 * (2**30),
             ),
         ],
-        logging_dir=".datatrove/logs/finewebedu_tok",
+        logging_dir=f".datatrove/logs/{target_repo_id}_tok",
         tasks=min(20, os.cpu_count() - 2),  # type: ignore
     )
     pipe_tokenize.run()
-    print("✅ Successfully tokenized FineWebEdu dataset")
+    print(f"✅ Successfully tokenized {target_repo_id} dataset")
 
     print(f"🆙 Uploading to {TARGET_REPO_ID}")
     api = HfApi()
